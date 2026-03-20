@@ -40,7 +40,7 @@ def _build_flow_edge_weight(delta_component: np.ndarray) -> np.ndarray:
         js = np.arange(i + 1, n)
         if len(js) == 0:
             break
-        w_ij = delta_component[i, js]
+        w_ij = np.abs(delta_component[i, js])
         diff = d_corr[i] - d_corr[js]
         flow[idx:idx + len(js)] = w_ij * np.sign(diff)
         idx += len(js)

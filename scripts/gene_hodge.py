@@ -156,8 +156,10 @@ def hodge_gradient_kn(flow: np.ndarray, n_genes: int) -> np.ndarray:
     e_idx = 0
     for i in range(N):
         for j in range(i + 1, N):
-            div[i] += flow[e_idx]
-            div[j] -= flow[e_idx]
+            # B0[e,(i,j)] has B0[e,i]=-1, B0[e,j]=+1
+            # div = B0^T @ f, so div[i] -= f[e], div[j] += f[e]
+            div[i] -= flow[e_idx]
+            div[j] += flow[e_idx]
             e_idx += 1
 
     phi = (div - div.mean()) / N

@@ -135,6 +135,16 @@ def run_lane_a(
     if run_permutation:
         permutation_result = permutation_test_gradient(flow, B0, B1)
 
+    # Determine upstream window (max d_corr transition for top-ranked celltype)
+    upstream_ct = ranked[0][0] if ranked else None
+    upstream_window = None
+    if upstream_ct and upstream_ct in distance_decomp:
+        ct_d_corrs = distance_decomp[upstream_ct]["d_corr"]
+        ct_w_pairs = distance_decomp[upstream_ct]["window_pairs"]
+        if ct_d_corrs:
+            max_idx = int(np.argmax(ct_d_corrs))
+            upstream_window = ct_w_pairs[max_idx][0]
+
     result = {
         "phi_scores": phi_scores,
         "gradient_fraction": hodge_result["gradient_fraction"],
@@ -145,6 +155,8 @@ def run_lane_a(
         "distance_decomp": distance_decomp,
         "permutation_result": permutation_result,
         "ranked_celltypes": [ct for ct, _ in ranked],
+        "upstream_celltype": upstream_ct,
+        "upstream_window": upstream_window,
         "status": "OK",
     }
 
@@ -159,6 +171,8 @@ def run_lane_a(
             "curl_fraction": hodge_result["curl_fraction"],
             "harmonic_fraction": hodge_result["harmonic_fraction"],
             "ranked_celltypes": [ct for ct, _ in ranked],
+            "upstream_celltype": upstream_ct,
+            "upstream_window": upstream_window,
             "valid_celltypes": valid_celltypes,
         }
         if permutation_result:

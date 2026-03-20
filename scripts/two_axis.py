@@ -181,7 +181,8 @@ def compute_mss(
 def run_two_axis_model(
     residuals: np.ndarray,
     donor_ids: np.ndarray,
-    gene_names: List[str],
+    all_gene_names: List[str],
+    hodge_gene_names: List[str],
     phi_scores: np.ndarray,
     classification: List[str],
     donor_window: Dict[str, int],
@@ -193,9 +194,13 @@ def run_two_axis_model(
     Parameters
     ----------
     residuals : np.ndarray, shape (n_cells, n_genes_kept)
+        Full residual matrix for this cell type.
     donor_ids : np.ndarray, shape (n_cells,)
-    gene_names : list of str (length = n_genes_in_hodge, subset of residual genes)
-    phi_scores : np.ndarray, shape (n_genes_in_hodge,)
+    all_gene_names : list of str
+        Gene names corresponding to residual columns (length = n_genes_kept).
+    hodge_gene_names : list of str
+        Gene names from Hodge analysis (subset of all_gene_names).
+    phi_scores : np.ndarray, shape (n_hodge_genes,)
     classification : list of str ("High", "Medium", "Low")
     donor_window : dict {donor_id_str: window_int}
     n_windows : int
@@ -208,11 +213,12 @@ def run_two_axis_model(
     if n_windows is None:
         n_windows = config.N_WINDOWS
 
-    # Resolve gene indices within residual matrix
-    # gene_names are from the Hodge gene set; we need their positions in the full residual
-    # For simplicity, assume gene_names indices map directly if they're a subset
-    high_genes = [g for g, c in zip(gene_names, classification) if c == "High"]
-    medium_genes = [g for g, c in zip(gene_names, classification) if c == "Medium"]
+    # Build residual column index lookup
+    resid_name_to_idx = {g: i for i, g in enumerate(all_gene_names)}
+
+    # Separate High and Medium genes, map to residual column indices
+    high_genes = [g for g, c in zip(hodge_gene_names, classification) if c == "High"]
+    medium_genes = [g for g, c in zip(hodge_gene_names, classification) if c == "Medium"]
 
     logger.info("2-Axis Model: %d High genes (TRS), %d Medium genes (MSS)",
                 len(high_genes), len(medium_genes))
@@ -224,10 +230,12 @@ def run_two_axis_model(
         logger.warning("Too few Medium genes for MSS")
         return {"status": "SKIPPED", "reason": "too few Medium genes"}
 
-    # Map gene names to indices in gene_names list (which correspond to gene_indices in residuals)
-    name_to_idx = {g: i for i, g in enumerate(gene_names)}
-    high_idx = np.array([name_to_idx[g] for g in high_genes])
-    med_idx = np.array([name_to_idx[g] for g in medium_genes])
+    # Map to residual matrix column indices
+    high_idx = np.array([resid_name_to_idx[g] for g in high_genes if g in resid_name_to_idx])
+    med_idx = np.array([resid_name_to_idx[g] for g in medium_genes if g in resid_name_to_idx])
+
+    if len(high_idx) < 5 or len(med_idx) < 5:
+        return {"status": "SKIPPED", "reason": "too few genes resolved in residual matrix"}
 
     # Compute TRS and MSS
     trs = compute_trs(residuals, donor_ids, high_idx, donor_window, n_windows)
