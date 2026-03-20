@@ -1,0 +1,116 @@
+# =============================================================================
+# scRNAseq Hodge Decomposition Pipeline — Project Configuration
+# =============================================================================
+# Edit this file to configure the pipeline for your dataset.
+# Lines starting with '#' are comments.
+
+# ── Project Info ─────────────────────────────────────────────────
+project_name: "my_scrnaseq_project"
+description: "scRNAseq Hodge decomposition analysis"
+
+# ── Data Paths ───────────────────────────────────────────────────
+# Relative to this file's directory. Absolute paths also accepted.
+data:
+  h5ad_dir: "data/h5ad"                        # Directory containing h5ad files
+  sample_info: "data/metadata/sample_info.csv"  # Sample metadata CSV
+  gene_annotation: "data/metadata/gene_annotation.csv"  # Gene annotation (ENSEMBL ID, chromosome, etc.)
+  functional_modules: "data/metadata/functional_modules.json"  # Functional gene modules for enrichment
+
+# ── Cell Type Configuration ──────────────────────────────────────
+cell_types:
+  column_name: "CellType"    # Column name in h5ad .obs for cell type labels
+  # List ALL cell types you want to analyze.
+  # Comment out or remove cell types you want to exclude.
+  include:
+    - "CellType_A"
+    - "CellType_B"
+    - "CellType_C"
+    # Add more cell types as needed...
+
+  # Cell types to use for pseudotime construction (subset of include).
+  # Use the most abundant/reliable cell types. Recommend 4-6.
+  pseudotime_set:
+    - "CellType_A"
+    - "CellType_B"
+    - "CellType_C"
+
+# ── Condition Configuration ──────────────────────────────────────
+conditions:
+  # The column in sample_info.csv that contains condition labels
+  column_name: "condition"
+  # The label for the control/reference group
+  control_label: "Control"
+  # All disease/treatment labels (for rank shift analysis)
+  disease_labels:
+    - "Disease"
+
+# ── Hardware ─────────────────────────────────────────────────────
+hardware:
+  use_gpu: true              # Set to false for CPU-only
+  gpu_device: "cuda:0"       # GPU device string
+  n_cpu_cores: 8             # Number of CPU cores for parallel tasks
+
+# ── QC & Preprocessing ──────────────────────────────────────────
+preprocessing:
+  min_cells_per_donor: 100   # Minimum cells per donor per cell type
+  gene_detection_min_frac: 0.01  # Genes must be detected in >= 1% of cells
+  normalization: "log1p_cpm"     # Normalization method (only log1p_cpm supported)
+
+# ── PCA ──────────────────────────────────────────────────────────
+pca:
+  k: 100                    # Number of principal components
+  n_oversamples: 10          # Oversampling for randomized SVD
+  n_iter: 5                  # Power iterations for randomized SVD
+  hvg_n: null                # Number of HVGs (null = use all detected genes)
+
+# ── Pseudotime ───────────────────────────────────────────────────
+pseudotime:
+  method: "diffusion_map"
+  eigenvector_index: 1       # 0-indexed: 2nd eigenvector (1st non-trivial)
+  sign_convention: "control_low"  # Control donors should have lowest mean PT
+
+# ── Lane A (Cell-type Level) ────────────────────────────────────
+lane_a:
+  n_windows: 8               # Number of pseudotime windows
+  min_donors_per_window: 3    # Minimum donors per window for stable estimation
+
+# ── Hodge Quality ────────────────────────────────────────────────
+hodge:
+  gradient_fraction_threshold: 0.5   # Minimum GF for reliable signal
+  curl_fraction_warning: 0.3         # Warn if curl > this
+
+# ── Bootstrap ────────────────────────────────────────────────────
+bootstrap:
+  n_iterations: 100           # Number of bootstrap iterations
+  top_k: 3                    # Top-K for reproducibility assessment
+  stable_threshold: 0.80      # >= 80% = stable
+  suggestive_threshold: 0.50  # 50-80% = suggestive
+  n_workers: 1                # Parallel workers (1 = sequential)
+  base_seed: 42               # Base random seed
+
+# ── Lane B (Gene Level) ─────────────────────────────────────────
+lane_b:
+  upstream_pc_top_n: 10       # Number of top upstream PCs
+  gene_loading_top_n: 200     # Top genes per PC by loading magnitude
+
+# ── Gene Hodge ───────────────────────────────────────────────────
+gene_hodge:
+  permutation_n: 1000         # Null-distribution permutations
+  high_sigma: 1.0             # phi > mean + 1*sigma -> High tier
+  medium_sigma: 0.0           # phi > mean -> Medium tier
+  min_genes: 10               # Minimum genes for valid analysis
+  flow_mode: "sign"           # "sign", "weighted", "edge_product", "edge_weight"
+
+# ── Rank Shift Analysis ─────────────────────────────────────────
+rank_shift:
+  permutation_n: 1000
+  alpha: 0.05                 # FDR significance threshold
+  min_donors_per_window: 1    # Relaxed for per-condition splits
+
+# ── Permutation Test ─────────────────────────────────────────────
+permutation:
+  n: 1000
+  alpha: 0.05
+
+# ── Random Seed ──────────────────────────────────────────────────
+seed: 42

@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Pipeline outputs (large, regenerable)
+results/
+
+# Data files are tracked via Git LFS or excluded if too large
+# Uncomment below to exclude h5ad files from git:
+# data/h5ad/*.h5ad
