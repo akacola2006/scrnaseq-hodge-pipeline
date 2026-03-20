@@ -16,7 +16,11 @@ from typing import List, Optional, Tuple
 
 import anndata as ad
 import numpy as np
-import torch
+
+try:
+    import torch
+except ImportError:
+    torch = None
 
 from . import config
 
@@ -39,7 +43,46 @@ def normalize_log1p_cpm(adata: ad.AnnData) -> np.ndarray:
 
 
 # ---------------------------------------------------------------------------
-# 2. Gene QC -- detection-rate filter
+# 2. Sex-linked gene filter
+# ---------------------------------------------------------------------------
+
+# Y-chromosome genes to exclude (ENSEMBL IDs + symbols)
+_Y_CHROM_SYMBOLS = {
+    "RPS4Y1", "ZFY", "USP9Y", "DDX3Y", "KDM5D", "EIF1AY", "UTY",
+    "NLGN4Y", "PCDH11Y", "TMSB4Y", "TBL1Y", "TXLNGY", "PRKY",
+    "SRY", "AMELY", "RBMY1A1", "PRY", "BPY2", "DAZ1", "CDY1",
+}
+
+def _get_sex_gene_mask(var_names) -> np.ndarray:
+    """Return boolean mask for sex-linked genes (XIST, Y-chromosome, TTTY*)."""
+    from .data_loader import _load_gene_annotation
+    annot = _load_gene_annotation()
+
+    mask = np.zeros(len(var_names), dtype=bool)
+    for i, gene in enumerate(var_names):
+        gene_str = str(gene).upper()
+        bare = gene_str.split(".")[0]
+        # XIST
+        if bare == "XIST" or gene_str == "XIST":
+            mask[i] = True
+            continue
+        # TTTY* family
+        if gene_str.startswith("TTTY") or bare.startswith("TTTY"):
+            mask[i] = True
+            continue
+        # Y-chromosome symbols
+        if gene_str in _Y_CHROM_SYMBOLS or bare in _Y_CHROM_SYMBOLS:
+            mask[i] = True
+            continue
+        # Check annotation for chrY
+        if annot is not None and "chromosome" in annot.columns:
+            if bare in annot.index and annot.loc[bare, "chromosome"] == "chrY":
+                mask[i] = True
+    return mask
+
+
+# ---------------------------------------------------------------------------
+# 3. Gene QC -- detection-rate filter
 # ---------------------------------------------------------------------------
 
 def filter_genes_by_detection(
@@ -219,6 +262,13 @@ def compute_residuals(
     else:
         gene_mask = det_mask
 
+    # Sex-linked gene filter (XIST, Y-chromosome, TTTY*)
+    sex_gene_mask = _get_sex_gene_mask(adata.var_names)
+    n_sex = int(sex_gene_mask.sum())
+    if n_sex > 0:
+        gene_mask = gene_mask & ~sex_gene_mask
+        logger.info("  Sex gene filter: removed %d genes (XIST, Y-chr, TTTY*)", n_sex)
+
     n_genes_kept = int(gene_mask.sum())
     if n_genes_kept == 0:
         raise ValueError("No genes passed filtering.")
@@ -229,6 +279,7 @@ def compute_residuals(
     use_gpu = (
         config.USE_GPU
         and device.startswith("cuda")
+        and torch is not None
         and torch.cuda.is_available()
     )
 
@@ -243,7 +294,7 @@ def compute_residuals(
                 device=device,
             )
             logger.info("  GPU residuals complete")
-        except (torch.cuda.OutOfMemoryError, RuntimeError) as exc:
+        except (RuntimeError,) as exc:
             logger.warning("  GPU OOM (%s), falling back to CPU", exc)
             torch.cuda.empty_cache()
             X_design = _build_design_matrix(adata.obs)

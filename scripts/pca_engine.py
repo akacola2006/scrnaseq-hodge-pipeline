@@ -8,7 +8,11 @@ import logging
 from typing import Dict, Tuple
 
 import numpy as np
-import torch
+
+try:
+    import torch
+except ImportError:
+    torch = None
 
 from . import config
 
@@ -52,6 +56,7 @@ def pca_gpu(
     use_gpu = (
         config.USE_GPU
         and device.startswith("cuda")
+        and torch is not None
         and torch.cuda.is_available()
     )
 

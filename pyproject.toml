@@ -11,7 +11,6 @@ requires-python = ">=3.10"
 license = {text = "MIT"}
 dependencies = [
     "anndata>=0.10",
-    "scanpy>=1.9",
     "numpy>=1.24",
     "scipy>=1.10",
     "pandas>=2.0",
@@ -24,8 +23,9 @@ dependencies = [
 gpu = ["torch>=2.0"]
 dev = ["pytest>=7.0", "ruff>=0.1"]
 
-[project.scripts]
-scrnaseq-hodge = "run_pipeline:main"
+# Entry point: run via `python run_pipeline.py` (not installable as console script)
+# [project.scripts]
+# scrnaseq-hodge = "run_pipeline:main"
 
 [tool.setuptools.packages.find]
 include = ["scripts*"]

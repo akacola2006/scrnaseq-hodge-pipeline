@@ -117,6 +117,13 @@ GENE_HODGE_FLOW_MODE = _gh_cfg.get("flow_mode", "sign")
 GENE_HODGE_TIE_EPSILON_FACTOR = 0.01
 GENE_HODGE_VALID_FLOW_MODES = ("sign", "weighted", "edge_product", "edge_weight")
 
+# ── Dual-Mode (K_N vs Sparse k-NN) ──────────────────────────────
+_dm_cfg = _cfg.get("dual_mode", {})
+DUAL_MODE_ENABLED = _dm_cfg.get("enabled", True)
+DUAL_MODE_K_VALUES = _dm_cfg.get("k_values", [10, 20, 30, 50, 100])
+DUAL_MODE_D_MODE = _dm_cfg.get("d_mode", "full")
+DUAL_MODE_PHI_PRESERVATION_MIN = _dm_cfg.get("phi_preservation_min", 0.8)
+
 # ── Rank Shift ───────────────────────────────────────────────────
 _rs_cfg = _cfg.get("rank_shift", {})
 RANK_SHIFT_MIN_DONORS_PER_WINDOW = _rs_cfg.get("min_donors_per_window", 1)

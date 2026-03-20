@@ -588,6 +588,139 @@ def run_full_pipeline(start_step: str = None):
                 logger.error("Enrichment FAILED: %s", e)
                 failure_logger.log("enrichment", e)
 
+    # ── Optional: Two-Axis Model ────────────────────────────────
+    if "dual_mode" in steps_to_run:
+        gene_scores_path = dirs["gene_hodge"] / "gene_phi_scores.csv"
+        if gene_scores_path.exists() and lane_a_result:
+            logger.info("\n[OPTIONAL] Running 2-axis model (TRS x MSS)...")
+            try:
+                from scripts.two_axis import run_two_axis_model
+                ranked = lane_a_result.get("ranked_celltypes", [])
+                if ranked:
+                    upstream_ct = ranked[0]
+                    gene_scores_df = pd.read_csv(gene_scores_path)
+                    if upstream_ct in all_residuals and upstream_ct in all_gene_names:
+                        two_axis_dir = dirs["laneB"] / "two_axis"
+                        two_axis_dir.mkdir(parents=True, exist_ok=True)
+                        two_axis_result = run_two_axis_model(
+                            residuals=all_residuals[upstream_ct],
+                            gene_names=all_gene_names[upstream_ct],
+                            gene_scores_df=gene_scores_df,
+                            spd_matrices=spd_matrices.get(upstream_ct, {}),
+                            pt_df=pt_df,
+                            output_dir=two_axis_dir,
+                        )
+                        logger.info("2-axis model complete")
+            except Exception as e:
+                logger.error("2-axis model FAILED: %s", e)
+                failure_logger.log("two_axis", e)
+
+    # ── Optional: Directional Decomposition ──────────────────
+    if "dual_mode" in steps_to_run:
+        gene_scores_path = dirs["gene_hodge"] / "gene_phi_scores.csv"
+        if gene_scores_path.exists() and lane_a_result:
+            logger.info("\n[OPTIONAL] Running directional decomposition...")
+            try:
+                from scripts.directional import run_directional_decomposition
+                ranked = lane_a_result.get("ranked_celltypes", [])
+                if ranked:
+                    upstream_ct = ranked[0]
+                    if upstream_ct in all_residuals and upstream_ct in all_gene_names:
+                        gene_scores_df = pd.read_csv(gene_scores_path)
+                        gene_set = gene_scores_df["gene"].tolist()
+                        from scripts.gene_hodge import resolve_gene_indices, precompute_donor_log_corr, _window_mean_log
+                        gene_indices, resolved_genes = resolve_gene_indices(
+                            gene_set, all_gene_names[upstream_ct],
+                        )
+                        if adata_dict is None:
+                            from scripts.data_loader import load_all_samples
+                            adata_dict = load_all_samples()
+                        from scripts.data_loader import get_cells_for_celltype
+                        adata_ct = get_cells_for_celltype(adata_dict, upstream_ct)
+                        donor_log_corr, donor_window = precompute_donor_log_corr(
+                            all_residuals[upstream_ct],
+                            adata_ct.obs["donor_id"].values.astype(str),
+                            gene_indices, pt_df,
+                        )
+                        d_corr_data = lane_a_result.get("distance_decomp", {}).get(upstream_ct, {})
+                        d_corrs = d_corr_data.get("d_corr", [])
+                        w_pairs = d_corr_data.get("window_pairs", [])
+                        w_star = w_pairs[np.argmax(d_corrs)][0] if d_corrs else 0
+                        donor_ids = list(donor_log_corr.keys())
+                        mean_w = _window_mean_log(donor_log_corr, donor_window, donor_ids, w_star)
+                        mean_w1 = _window_mean_log(donor_log_corr, donor_window, donor_ids, w_star + 1)
+                        if mean_w is not None and mean_w1 is not None:
+                            delta = mean_w1 - mean_w
+                            dir_dir = dirs["laneB"] / "directional"
+                            dir_dir.mkdir(parents=True, exist_ok=True)
+                            dir_result = run_directional_decomposition(
+                                delta, resolved_genes, output_dir=dir_dir,
+                            )
+                            logger.info("Directional decomposition complete")
+            except Exception as e:
+                logger.error("Directional decomposition FAILED: %s", e)
+                failure_logger.log("directional", e)
+
+    # ── Optional: Multi-Transition Integration ───────────────
+    if "dual_mode" in steps_to_run:
+        if lane_a_result and pt_df is not None:
+            logger.info("\n[OPTIONAL] Running multi-transition integration...")
+            try:
+                from scripts.multi_transition import run_multi_transition
+                ranked = lane_a_result.get("ranked_celltypes", [])
+                if ranked:
+                    upstream_ct = ranked[0]
+                    if upstream_ct in all_residuals and upstream_ct in all_gene_names:
+                        gene_scores_path = dirs["gene_hodge"] / "gene_phi_scores.csv"
+                        if gene_scores_path.exists():
+                            gene_scores_df = pd.read_csv(gene_scores_path)
+                            gene_set = gene_scores_df["gene"].tolist()
+                            from scripts.gene_hodge import resolve_gene_indices, precompute_donor_log_corr
+                            gene_indices, resolved_genes = resolve_gene_indices(
+                                gene_set, all_gene_names[upstream_ct],
+                            )
+                            if adata_dict is None:
+                                from scripts.data_loader import load_all_samples
+                                adata_dict = load_all_samples()
+                            from scripts.data_loader import get_cells_for_celltype
+                            adata_ct = get_cells_for_celltype(adata_dict, upstream_ct)
+                            donor_log_corr, donor_window = precompute_donor_log_corr(
+                                all_residuals[upstream_ct],
+                                adata_ct.obs["donor_id"].values.astype(str),
+                                gene_indices, pt_df,
+                            )
+                            mt_dir = dirs["laneB"] / "multi_transition"
+                            mt_dir.mkdir(parents=True, exist_ok=True)
+                            mt_result = run_multi_transition(
+                                donor_log_corr, donor_window,
+                                list(donor_log_corr.keys()), resolved_genes,
+                                output_dir=mt_dir,
+                            )
+                            logger.info("Multi-transition integration complete")
+            except Exception as e:
+                logger.error("Multi-transition FAILED: %s", e)
+                failure_logger.log("multi_transition", e)
+
+    # ── Optional: Random Baseline GF Test ────────────────────
+    if "dual_mode" in steps_to_run:
+        gene_scores_path = dirs["gene_hodge"] / "gene_phi_scores.csv"
+        if gene_scores_path.exists():
+            logger.info("\n[OPTIONAL] Running random baseline GF test...")
+            try:
+                from scripts.random_baseline import run_random_baseline
+                gene_scores_df = pd.read_csv(gene_scores_path)
+                n_genes = len(gene_scores_df)
+                rb_dir = dirs["laneB"] / "random_baseline"
+                rb_dir.mkdir(parents=True, exist_ok=True)
+                rb_result = run_random_baseline(
+                    n_genes=n_genes, output_dir=rb_dir,
+                )
+                logger.info("Random baseline complete: null GF p95=%.4f",
+                           rb_result.get("null_gf_p95", float("nan")))
+            except Exception as e:
+                logger.error("Random baseline FAILED: %s", e)
+                failure_logger.log("random_baseline", e)
+
     # ── Summary ───────────────────────────────────────────────
     elapsed = time.time() - t0
     logger.info("\n" + "=" * 60)

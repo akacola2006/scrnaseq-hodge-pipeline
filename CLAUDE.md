@@ -140,6 +140,8 @@ h5ad files (per donor)
   |
   v
 === LANE B: Gene Level (within upstream cell type) ===
+NOTE: Lane B requires bootstrap to pass (top-3 reproducibility >= 80%).
+If bootstrap is skipped or unstable, Lane B will not execute.
 [15. Upstream PC Identification] — Top PCs by d_corr contribution
 [16. Gene Set Extraction] — Top 200 genes per upstream PC
 [17. Gene-level Hodge] — Correlation-change flow on gene complete graph
@@ -202,15 +204,19 @@ These can be run independently after the main pipeline completes:
 ## Dependencies
 ```
 anndata>=0.10
-scanpy>=1.9
 numpy>=1.24
 scipy>=1.10
 pandas>=2.0
 scikit-learn>=1.3
 statsmodels>=0.14
-torch>=2.0          # Optional: GPU acceleration
 pyyaml>=6.0
+
+# Optional (GPU acceleration):
+torch>=2.0
 ```
+Note: `torch` is optional. Without it, the pipeline runs entirely on CPU.
+Install via `pip install -r requirements.txt` for core deps, then optionally
+`pip install torch` for GPU acceleration.
 
 ## Output Structure
 ```
