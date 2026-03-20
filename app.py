@@ -147,6 +147,125 @@ elif page == "File Checker":
             st.markdown("---")
             st.header("Available Fixes")
 
+        # ── Claude Code / AI用の指示文生成 ──
+        st.markdown("---")
+        st.header("AI Assistant Prompt Generator")
+        st.markdown("""
+        チェック結果に基づいて、**Claude Code**やその他のAIアシスタントに
+        コピペするだけでファイルを修正してもらえる指示文を生成します。
+        """)
+
+        if st.button("Generate Fix Prompt", key="gen_prompt"):
+            prompt_lines = []
+            prompt_lines.append("# scRNAseq Data Preparation Request")
+            prompt_lines.append("")
+            prompt_lines.append(f"I have {len(report['h5ad_files'])} h5ad files in `{H5AD_DIR}`.")
+            prompt_lines.append(f"Pipeline expects: one h5ad per donor, with `.obs['CellType']` column,")
+            prompt_lines.append(f"raw integer counts in `.X`, and a `data/metadata/sample_info.csv`.")
+            prompt_lines.append("")
+            prompt_lines.append("## Issues Found")
+            prompt_lines.append("")
+
+            has_issues = False
+            for file_result in report["h5ad_files"]:
+                file_issues = [c for c in file_result["checks"] if c["status"] in ("ERROR", "WARNING")]
+                if file_issues:
+                    has_issues = True
+                    prompt_lines.append(f"### {file_result['file']}")
+                    for check in file_issues:
+                        prompt_lines.append(f"- **{check['status']}** [{check['name']}]: {check['message']}")
+                    prompt_lines.append("")
+
+            si_issues = [c for c in report["sample_info"]["checks"] if c["status"] in ("ERROR", "WARNING")]
+            if si_issues:
+                has_issues = True
+                prompt_lines.append("### sample_info.csv")
+                for check in si_issues:
+                    prompt_lines.append(f"- **{check['status']}** [{check['name']}]: {check['message']}")
+                prompt_lines.append("")
+
+            if not has_issues:
+                prompt_lines.append("No issues found! Files are ready for the pipeline.")
+            else:
+                prompt_lines.append("## Fix Instructions")
+                prompt_lines.append("")
+                prompt_lines.append("Please fix the above issues using Python with anndata. Specific tasks:")
+                prompt_lines.append("")
+
+                fix_tasks = []
+                for file_result in report["h5ad_files"]:
+                    fname = file_result["file"]
+                    for check in file_result["checks"]:
+                        if check["status"] == "ERROR" and check["name"] == "celltype_column":
+                            fix_tasks.append(
+                                f"- In `{fname}`: Find the cell type annotation column in `.obs` "
+                                f"and rename it to `CellType`. Available columns: check `.obs.columns`."
+                            )
+                        elif check["status"] == "WARNING" and check.get("fix_id") == "rename_ct_column":
+                            old_col = check["message"].split("'")[1]
+                            fix_tasks.append(
+                                f"- In `{fname}`: Rename `.obs['{old_col}']` to `.obs['CellType']`."
+                            )
+                        elif check.get("fix_id") == "split_donors":
+                            fix_tasks.append(
+                                f"- `{fname}` contains multiple donors. Split into separate h5ad files "
+                                f"(one per donor) in `{H5AD_DIR}/`."
+                            )
+                        elif check["status"] == "WARNING" and "normalized" in check["message"].lower():
+                            fix_tasks.append(
+                                f"- In `{fname}`: The count matrix appears normalized. "
+                                f"If raw counts are available in `.layers['counts']` or `.raw.X`, "
+                                f"replace `.X` with the raw counts."
+                            )
+
+                for check in report["sample_info"]["checks"]:
+                    if check.get("fix_id") == "generate_sample_info":
+                        fix_tasks.append(
+                            f"- Create `{METADATA_DIR}/sample_info.csv` with columns: "
+                            f"`donor_id`, `file`, `condition`. One row per h5ad file. "
+                            f"Set `condition` to the appropriate disease/control label for each donor."
+                        )
+
+                if fix_tasks:
+                    prompt_lines.extend(fix_tasks)
+                else:
+                    prompt_lines.append("- Review the warnings above and fix as needed.")
+
+                prompt_lines.append("")
+                prompt_lines.append("## Code Template")
+                prompt_lines.append("")
+                prompt_lines.append("```python")
+                prompt_lines.append("import anndata as ad")
+                prompt_lines.append("import pandas as pd")
+                prompt_lines.append("")
+                prompt_lines.append("# Example: fix cell type column")
+                prompt_lines.append(f"adata = ad.read_h5ad('{H5AD_DIR}/FILENAME.h5ad')")
+                prompt_lines.append("print(adata.obs.columns.tolist())  # check available columns")
+                prompt_lines.append("adata.obs['CellType'] = adata.obs['YOUR_COLUMN_NAME']")
+                prompt_lines.append(f"adata.write_h5ad('{H5AD_DIR}/FILENAME.h5ad')")
+                prompt_lines.append("")
+                prompt_lines.append("# Example: split multi-donor file")
+                prompt_lines.append("for donor in adata.obs['donor_id'].unique():")
+                prompt_lines.append("    sub = adata[adata.obs['donor_id'] == donor].copy()")
+                prompt_lines.append(f"    sub.write_h5ad(f'{H5AD_DIR}/{{donor}}.h5ad')")
+                prompt_lines.append("")
+                prompt_lines.append("# Example: generate sample_info.csv")
+                prompt_lines.append("import glob")
+                prompt_lines.append(f"files = glob.glob('{H5AD_DIR}/*.h5ad')")
+                prompt_lines.append("rows = [{'donor_id': Path(f).stem, 'file': Path(f).name, 'condition': 'TODO'} for f in files]")
+                prompt_lines.append(f"pd.DataFrame(rows).to_csv('{METADATA_DIR}/sample_info.csv', index=False)")
+                prompt_lines.append("```")
+
+            full_prompt = "\n".join(prompt_lines)
+
+            st.text_area(
+                "Copy this prompt to Claude Code or ChatGPT:",
+                full_prompt,
+                height=400,
+                key="prompt_output",
+            )
+            st.info("上のテキストをコピーして、Claude CodeやChatGPTに貼り付けてください。")
+
     # ── Individual Fixes ──
     st.markdown("---")
     st.header("Tools")
