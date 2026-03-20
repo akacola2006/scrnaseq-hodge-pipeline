@@ -18,6 +18,14 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+# Check plotly availability (optional dependency)
+try:
+    import plotly.graph_objects as go
+    import plotly.express as px
+    HAS_PLOTLY = True
+except ImportError:
+    HAS_PLOTLY = False
+
 # ── Page config ──────────────────────────────────────────────
 st.set_page_config(
     page_title="scRNAseq Hodge Pipeline",
@@ -148,26 +156,34 @@ elif page == "Data Setup":
 
         uploaded = st.file_uploader("Upload sample_info.csv", type="csv")
         if uploaded is not None:
-            METADATA_DIR.mkdir(parents=True, exist_ok=True)
-            df_upload = pd.read_csv(uploaded)
-            df_upload.to_csv(sample_info_path, index=False)
-            st.success("sample_info.csv saved!")
-            st.dataframe(df_upload)
-            st.rerun()
+            if uploaded.size > 10 * 1024 * 1024:  # 10MB limit
+                st.error("File too large (max 10MB)")
+            else:
+                df_upload = pd.read_csv(uploaded)
+                required_cols = {"donor_id", "file", "condition"}
+                missing = required_cols - set(df_upload.columns)
+                if missing:
+                    st.error(f"Missing required columns: {missing}")
+                else:
+                    METADATA_DIR.mkdir(parents=True, exist_ok=True)
+                    df_upload.to_csv(sample_info_path, index=False)
+                    st.success("sample_info.csv saved!")
+                    st.dataframe(df_upload)
+                    st.rerun()
 
     st.header("3. Reference Data")
     col1, col2 = st.columns(2)
     with col1:
         annot_path = METADATA_DIR / "gene_annotation.csv"
         if annot_path.exists():
-            n_genes = sum(1 for _ in open(annot_path)) - 1
+            n_genes = sum(1 for _ in open(annot_path, encoding="utf-8")) - 1
             st.success(f"gene_annotation.csv: {n_genes:,} genes")
         else:
             st.info("gene_annotation.csv: not found (optional)")
     with col2:
         modules_path = METADATA_DIR / "functional_modules.json"
         if modules_path.exists():
-            with open(modules_path) as f:
+            with open(modules_path, encoding="utf-8") as f:
                 mods = json.load(f)
             n_mods = len(mods.get("modules", mods))
             st.success(f"functional_modules.json: {n_mods} modules")
@@ -343,11 +359,13 @@ elif page == "Run Pipeline":
             for line in proc.stdout:
                 log_lines.append(line.rstrip())
 
-                # Update progress based on step detection
-                for i, step_name in enumerate(all_steps):
-                    if f"[STEP" in line or step_name.upper() in line.upper():
-                        progress_bar.progress(min((i + 1) / len(all_steps), 1.0))
-                        status_text.text(f"Running: {step_name}")
+                # Update progress based on [STEP N/M] pattern
+                if "[STEP" in line or "[PROCESSING]" in line or "[OPTIONAL]" in line:
+                    for i, step_name in enumerate(all_steps):
+                        if step_name in line.lower():
+                            progress_bar.progress(min((i + 1) / len(all_steps), 1.0))
+                            status_text.text(f"Running: {step_name}")
+                            break
 
                 # Show last 30 lines
                 display_text = "\n".join(log_lines[-30:])
@@ -375,6 +393,9 @@ elif page == "Run Pipeline":
 elif page == "Results":
     st.title("Results")
 
+    if not HAS_PLOTLY:
+        st.warning("Install plotly for interactive charts: `pip install plotly`. Tables will still display.")
+
     if not RESULTS_DIR.exists():
         st.info("No results yet. Run the pipeline first.")
         st.stop()
@@ -395,7 +416,7 @@ elif page == "Results":
     # ── Summary ──
     summary_path = run_dir / "summary.json"
     if summary_path.exists():
-        with open(summary_path) as f:
+        with open(summary_path, encoding="utf-8") as f:
             summary = json.load(f)
 
         st.header("Run Summary")
@@ -418,7 +439,7 @@ elif page == "Results":
     # ── Lane A ──
     lane_a_path = run_dir / "laneA" / "lane_a_summary.json"
     if lane_a_path.exists():
-        with open(lane_a_path) as f:
+        with open(lane_a_path, encoding="utf-8") as f:
             la = json.load(f)
 
         st.header("Lane A: Cell-type Upstream Analysis")
@@ -440,9 +461,8 @@ elif page == "Results":
         gf = la.get("gradient_fraction", 0)
         cf = la.get("curl_fraction", 0)
         hf = la.get("harmonic_fraction", 0)
-        if gf + cf + hf > 0:
+        if gf + cf + hf > 0 and HAS_PLOTLY:
             st.subheader("Hodge Decomposition")
-            import plotly.graph_objects as go
             fig = go.Figure(data=[go.Pie(
                 labels=["Gradient", "Curl", "Harmonic"],
                 values=[gf, cf, hf],
@@ -456,7 +476,7 @@ elif page == "Results":
     # ── Bootstrap ──
     boot_path = run_dir / "bootstrap" / "bootstrap_summary.json"
     if boot_path.exists():
-        with open(boot_path) as f:
+        with open(boot_path, encoding="utf-8") as f:
             boot = json.load(f)
 
         st.header("Bootstrap Validation")
@@ -508,8 +528,9 @@ elif page == "Results":
 
         # phi distribution
         st.subheader("phi Score Distribution")
-        import plotly.express as px
-        if "classification" in gene_df.columns:
+        if not HAS_PLOTLY:
+            st.warning("Install plotly for interactive charts: `pip install plotly`")
+        elif "classification" in gene_df.columns:
             fig = px.histogram(gene_df, x="phi", color="classification",
                               color_discrete_map={"High": "#e74c3c", "Medium": "#f39c12", "Low": "#95a5a6"},
                               nbins=50, barmode="overlay", opacity=0.7)
@@ -521,7 +542,7 @@ elif page == "Results":
     # ── Gene Hodge Summary ──
     gh_summary_path = run_dir / "laneB" / "gene_hodge" / "gene_hodge_summary.json"
     if gh_summary_path.exists():
-        with open(gh_summary_path) as f:
+        with open(gh_summary_path, encoding="utf-8") as f:
             gh = json.load(f)
         st.subheader("Gene Hodge Summary")
         col1, col2, col3 = st.columns(3)
@@ -535,7 +556,7 @@ elif page == "Results":
     # ── Dual Mode ──
     dual_path = run_dir / "laneB" / "gene_hodge" / "dual_mode" / "dual_mode_summary.json"
     if dual_path.exists():
-        with open(dual_path) as f:
+        with open(dual_path, encoding="utf-8") as f:
             dual = json.load(f)
         st.header("Dual-Mode: K_N vs Sparse k-NN")
 
@@ -552,12 +573,13 @@ elif page == "Results":
             st.subheader("k-NN Sweep")
             st.dataframe(sweep_df, use_container_width=True)
 
-            fig = px.line(sweep_df, x="k", y="gf", markers=True,
-                         labels={"k": "k (nearest neighbors)", "gf": "Gradient Fraction"})
-            fig.add_hline(y=dual.get("kn_gf", 0), line_dash="dash",
-                         annotation_text="K_N baseline", line_color="red")
-            fig.update_layout(height=350)
-            st.plotly_chart(fig, use_container_width=True)
+            if HAS_PLOTLY:
+                fig = px.line(sweep_df, x="k", y="gf", markers=True,
+                             labels={"k": "k (nearest neighbors)", "gf": "Gradient Fraction"})
+                fig.add_hline(y=dual.get("kn_gf", 0), line_dash="dash",
+                             annotation_text="K_N baseline", line_color="red")
+                fig.update_layout(height=350)
+                st.plotly_chart(fig, use_container_width=True)
 
     # ── Enrichment ──
     enrichment_dir = run_dir / "laneB" / "gene_hodge" / "enrichment"
@@ -571,18 +593,19 @@ elif page == "Results":
                 st.dataframe(sig_df[["module", "n_overlap", "odds_ratio", "fdr"]].head(20),
                             use_container_width=True)
 
-                fig = px.bar(sig_df.head(15), x="module", y="odds_ratio",
-                            color="fdr", color_continuous_scale="Reds_r",
-                            labels={"odds_ratio": "Odds Ratio", "fdr": "FDR"})
-                fig.update_layout(height=400, xaxis_tickangle=-45)
-                st.plotly_chart(fig, use_container_width=True)
+                if HAS_PLOTLY:
+                    fig = px.bar(sig_df.head(15), x="module", y="odds_ratio",
+                                color="fdr", color_continuous_scale="Reds_r",
+                                labels={"odds_ratio": "Odds Ratio", "fdr": "FDR"})
+                    fig.update_layout(height=400, xaxis_tickangle=-45)
+                    st.plotly_chart(fig, use_container_width=True)
             else:
                 st.info("No significant modules found")
 
     # ── Random Baseline ──
     rb_path = run_dir / "laneB" / "random_baseline" / "random_baseline_summary.json"
     if rb_path.exists():
-        with open(rb_path) as f:
+        with open(rb_path, encoding="utf-8") as f:
             rb = json.load(f)
         st.header("Random Matrix Baseline")
         comp = rb.get("comparison", {})
@@ -599,7 +622,7 @@ elif page == "Results":
     # ── Directional ──
     dir_path = run_dir / "laneB" / "directional" / "directional_summary.json"
     if dir_path.exists():
-        with open(dir_path) as f:
+        with open(dir_path, encoding="utf-8") as f:
             dir_data = json.load(f)
         st.header("Directional Decomposition (Δ⁺ / Δ⁻)")
         energy = dir_data.get("energy_fraction", {})
@@ -618,7 +641,7 @@ elif page == "Results":
     # ── Multi-Transition ──
     mt_path = run_dir / "laneB" / "multi_transition" / "multi_transition_summary.json"
     if mt_path.exists():
-        with open(mt_path) as f:
+        with open(mt_path, encoding="utf-8") as f:
             mt = json.load(f)
         st.header("Multi-Transition Integration")
         col1, col2, col3 = st.columns(3)
@@ -635,15 +658,18 @@ elif page == "Results":
         st.header("2-Axis Model (TRS x MSS)")
         ta_df = pd.read_csv(ta_path)
 
-        fig = px.line(ta_df, x="window", y=["trs_mean", "mss_mean"],
-                     labels={"value": "Score", "window": "Pseudotime Window"},
-                     markers=True)
-        fig.update_layout(height=400, legend_title="Axis")
-        st.plotly_chart(fig, use_container_width=True)
+        if HAS_PLOTLY:
+            fig = px.line(ta_df, x="window", y=["trs_mean", "mss_mean"],
+                         labels={"value": "Score", "window": "Pseudotime Window"},
+                         markers=True)
+            fig.update_layout(height=400, legend_title="Axis")
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.dataframe(ta_df, use_container_width=True)
 
         ta_summary_path = run_dir / "laneB" / "two_axis" / "two_axis_summary.json"
         if ta_summary_path.exists():
-            with open(ta_summary_path) as f:
+            with open(ta_summary_path, encoding="utf-8") as f:
                 ta_summary = json.load(f)
             lead_lag = ta_summary.get("lead_lag", "?")
             st.metric("Lead/Lag Pattern", lead_lag)
