@@ -13,7 +13,12 @@ import webbrowser
 from pathlib import Path
 
 
-PIPELINE_ROOT = Path(__file__).resolve().parent
+# When running from PyInstaller exe, __file__ points to a temp folder.
+# Use the exe's actual location instead.
+if getattr(sys, "frozen", False):
+    PIPELINE_ROOT = Path(sys.executable).resolve().parent
+else:
+    PIPELINE_ROOT = Path(__file__).resolve().parent
 APP_PY = PIPELINE_ROOT / "app.py"
 PORT = 8501
 URL = f"http://localhost:{PORT}"
@@ -31,13 +36,15 @@ def find_python() -> str:
         return sys.executable
 
     # Running from PyInstaller exe — search for real Python
-    candidates = [
-        # Common Windows Python locations
-        shutil.which("python"),
-        shutil.which("python3"),
-    ]
+    # Check known install locations FIRST (before PATH, which may find WindowsApps stub)
+    candidates = []
 
-    # Check known paths
+    appdata = os.environ.get("LOCALAPPDATA", "")
+    if appdata:
+        # pythoncore (python.org installer, newer style)
+        for d in sorted(Path(appdata).glob("Python/pythoncore-*/python.exe"), reverse=True):
+            candidates.append(str(d))
+
     for base in [
         Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Python",
         Path(os.environ.get("LOCALAPPDATA", "")) / "Python",
@@ -50,14 +57,16 @@ def find_python() -> str:
                 if exe.exists():
                     candidates.append(str(exe))
 
-    # Also check PATH-based pythoncore
-    appdata = os.environ.get("LOCALAPPDATA", "")
-    if appdata:
-        for d in sorted(Path(appdata).glob("Python/pythoncore-*/python.exe"), reverse=True):
-            candidates.append(str(d))
+    # PATH-based as fallback (may find WindowsApps stub)
+    for which_name in ["python", "python3"]:
+        found = shutil.which(which_name)
+        if found:
+            candidates.append(found)
 
     for c in candidates:
-        if c and Path(c).exists() and not str(c).endswith("scRNAseq_Hodge_Pipeline.exe"):
+        if (c and Path(c).exists()
+                and "scRNAseq_Hodge_Pipeline" not in str(c)
+                and "WindowsApps" not in str(c)):
             # Verify it's a real Python
             try:
                 result = subprocess.run(
@@ -69,10 +78,109 @@ def find_python() -> str:
             except Exception:
                 continue
 
-    print("ERROR: Could not find Python installation.")
-    print("Please install Python 3.10+ from https://python.org")
+    # No Python found — offer to install automatically
+    print("=" * 50)
+    print("  Python not found on this PC.")
+    print("=" * 50)
+    print()
+    print("Options:")
+    print("  1. Auto-install Python now (recommended)")
+    print("  2. Exit and install manually from https://python.org")
+    print()
+    choice = input("Enter 1 or 2: ").strip()
+
+    if choice == "1":
+        installed_python = _auto_install_python()
+        if installed_python:
+            return installed_python
+
+    print("\nPlease install Python 3.10+ from https://python.org")
+    print("Make sure to check 'Add Python to PATH' during installation.")
     input("Press Enter to exit...")
     sys.exit(1)
+
+
+def _auto_install_python() -> str:
+    """Download and install Python automatically."""
+    import urllib.request
+    import tempfile
+
+    PYTHON_VERSION = "3.12.8"
+    INSTALLER_URL = f"https://www.python.org/ftp/python/{PYTHON_VERSION}/python-{PYTHON_VERSION}-amd64.exe"
+
+    print(f"\nDownloading Python {PYTHON_VERSION}...")
+
+    try:
+        installer_path = Path(tempfile.gettempdir()) / f"python-{PYTHON_VERSION}-installer.exe"
+
+        # Download with progress
+        def _report(block, block_size, total):
+            downloaded = block * block_size
+            if total > 0:
+                pct = min(downloaded / total * 100, 100)
+                bar = "#" * int(pct // 5)
+                print(f"\r  [{bar:<20}] {pct:.0f}%", end="", flush=True)
+
+        urllib.request.urlretrieve(INSTALLER_URL, str(installer_path), _report)
+        print("\n  Download complete.")
+
+        # Run installer silently with PATH enabled
+        print("  Installing Python (this may take a minute)...")
+        result = subprocess.run(
+            [
+                str(installer_path),
+                "/quiet",
+                "InstallAllUsers=0",
+                "PrependPath=1",
+                "Include_pip=1",
+                "Include_test=0",
+            ],
+            timeout=300,
+        )
+
+        # Clean up installer
+        try:
+            installer_path.unlink()
+        except Exception:
+            pass
+
+        if result.returncode == 0:
+            print("  Python installed successfully!")
+            print()
+
+            # Find the newly installed Python
+            appdata = os.environ.get("LOCALAPPDATA", "")
+            new_candidates = []
+            if appdata:
+                for d in sorted(Path(appdata).glob("Programs/Python/Python*/python.exe"), reverse=True):
+                    new_candidates.append(str(d))
+                for d in sorted(Path(appdata).glob("Python/pythoncore-*/python.exe"), reverse=True):
+                    new_candidates.append(str(d))
+
+            for c in new_candidates:
+                try:
+                    r = subprocess.run([c, "--version"], capture_output=True, text=True, timeout=5)
+                    if r.returncode == 0 and "Python" in r.stdout:
+                        return c
+                except Exception:
+                    continue
+
+            # Try PATH refresh
+            refreshed = shutil.which("python")
+            if refreshed and "WindowsApps" not in refreshed:
+                return refreshed
+
+            print("  Python installed but could not locate it.")
+            print("  Please restart this application.")
+            input("Press Enter to exit...")
+            sys.exit(0)
+        else:
+            print(f"  Installation failed (exit code {result.returncode}).")
+            return None
+
+    except Exception as e:
+        print(f"\n  Download/install failed: {e}")
+        return None
 
 
 def check_and_install_deps(python: str):
@@ -175,4 +283,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"\nERROR: {e}")
+        import traceback
+        traceback.print_exc()
+        input("\nPress Enter to exit...")
+        sys.exit(1)
