@@ -28,3 +28,6 @@ results/
 # Data files are tracked via Git LFS or excluded if too large
 # Uncomment below to exclude h5ad files from git:
 # data/h5ad/*.h5ad
+build/
+dist/
+*.spec
