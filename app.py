@@ -46,7 +46,7 @@ CONFIG_PATH = PIPELINE_ROOT / "project_config.yaml"
 st.sidebar.title("scRNAseq Hodge Pipeline")
 page = st.sidebar.radio(
     "Navigation",
-    ["Home", "Data Setup", "Configuration", "Run Pipeline", "Results"],
+    ["Home", "File Checker", "Data Setup", "Configuration", "Run Pipeline", "Results"],
     index=0,
 )
 
@@ -89,6 +89,141 @@ if page == "Home":
     with col3:
         run_dirs = sorted(RESULTS_DIR.glob("run_*")) if RESULTS_DIR.exists() else []
         st.metric("Completed Runs", len(run_dirs))
+
+
+# =====================================================================
+# FILE CHECKER
+# =====================================================================
+elif page == "File Checker":
+    st.title("File Checker & Modifier")
+    st.markdown("h5adファイルがパイプラインに適合するか検証し、問題があれば自動修正します。")
+
+    from scripts.file_checker import (
+        check_h5ad, check_sample_info, run_full_check,
+        fix_rename_column, fix_split_donors, fix_generate_sample_info, fix_filter_cells,
+        KNOWN_CT_COLUMNS, KNOWN_DONOR_COLUMNS,
+    )
+
+    h5ad_files = sorted(H5AD_DIR.glob("*.h5ad")) if H5AD_DIR.exists() else []
+
+    if not h5ad_files:
+        st.warning("h5adファイルが見つかりません。`data/h5ad/` にファイルを配置してください。")
+        st.stop()
+
+    # ── Run All Checks ──
+    if st.button("Run Full Check", type="primary"):
+        with st.spinner("Checking all files..."):
+            report = run_full_check(H5AD_DIR, METADATA_DIR)
+        st.session_state["check_report"] = report
+
+    if "check_report" in st.session_state:
+        report = st.session_state["check_report"]
+
+        # Overall status
+        status = report["overall_status"]
+        if status == "OK":
+            st.success(f"All checks passed! ({len(report['h5ad_files'])} files)")
+        elif status == "WARNING":
+            st.warning(f"{report['n_warnings']} warnings, {report['n_errors']} errors")
+        else:
+            st.error(f"{report['n_errors']} errors, {report['n_warnings']} warnings")
+
+        # Per-file results
+        for file_result in report["h5ad_files"]:
+            with st.expander(f"{'✅' if file_result['status'] == 'OK' else '⚠️' if file_result['status'] == 'WARNING' else '❌'} {file_result['file']}", expanded=(file_result["status"] != "OK")):
+                for check in file_result["checks"]:
+                    icon = {"OK": "✅", "WARNING": "⚠️", "ERROR": "❌", "INFO": "ℹ️"}.get(check["status"], "")
+                    st.write(f"{icon} **{check['name']}**: {check['message']}")
+
+        # sample_info results
+        si = report["sample_info"]
+        with st.expander(f"{'✅' if si['status'] == 'OK' else '❌'} sample_info.csv", expanded=(si["status"] != "OK")):
+            for check in si["checks"]:
+                icon = {"OK": "✅", "WARNING": "⚠️", "ERROR": "❌"}.get(check["status"], "")
+                st.write(f"{icon} **{check['name']}**: {check['message']}")
+
+        # Available fixes
+        if report["fixes_available"]:
+            st.markdown("---")
+            st.header("Available Fixes")
+
+    # ── Individual Fixes ──
+    st.markdown("---")
+    st.header("Tools")
+
+    # Tool 1: Rename cell type column
+    with st.expander("Rename Cell Type Column"):
+        st.markdown("h5adの`.obs`カラム名を`CellType`にリネームします。")
+        target_file = st.selectbox("File", h5ad_files, format_func=lambda x: x.name, key="rename_ct_file")
+        if target_file:
+            try:
+                import anndata as ad
+                adata_peek = ad.read_h5ad(target_file, backed="r")
+                current_cols = list(adata_peek.obs.columns)
+                old_col = st.selectbox("Current column", current_cols, key="rename_ct_old")
+                if old_col and st.button("Rename to 'CellType'", key="rename_ct_btn"):
+                    fix_rename_column(target_file, old_col, "CellType")
+                    st.success(f"Renamed '{old_col}' -> 'CellType'")
+            except Exception as e:
+                st.error(str(e))
+
+    # Tool 2: Split multi-donor file
+    with st.expander("Split Multi-Donor File"):
+        st.markdown("複数ドナーが入ったh5adをドナーごとに分割します。")
+        target_file = st.selectbox("File", h5ad_files, format_func=lambda x: x.name, key="split_file")
+        if target_file:
+            try:
+                import anndata as ad
+                adata_peek = ad.read_h5ad(target_file, backed="r")
+                donor_cols = [c for c in adata_peek.obs.columns if c in KNOWN_DONOR_COLUMNS]
+                if donor_cols:
+                    donor_col = st.selectbox("Donor column", donor_cols, key="split_donor_col")
+                    n_donors = adata_peek.obs[donor_col].nunique()
+                    st.write(f"{n_donors} donors found")
+                    if st.button(f"Split into {n_donors} files", key="split_btn"):
+                        with st.spinner("Splitting..."):
+                            files = fix_split_donors(target_file, donor_col, H5AD_DIR)
+                        st.success(f"Created {len(files)} files")
+                        for f in files:
+                            st.write(f"  - {f.name}")
+                else:
+                    other_col = st.selectbox("Select donor column", list(adata_peek.obs.columns), key="split_other")
+                    n_vals = adata_peek.obs[other_col].nunique()
+                    st.write(f"{n_vals} unique values")
+                    if n_vals > 1 and st.button(f"Split by '{other_col}'", key="split_other_btn"):
+                        with st.spinner("Splitting..."):
+                            files = fix_split_donors(target_file, other_col, H5AD_DIR)
+                        st.success(f"Created {len(files)} files")
+            except Exception as e:
+                st.error(str(e))
+
+    # Tool 3: Generate sample_info.csv
+    with st.expander("Auto-Generate sample_info.csv"):
+        st.markdown("h5adファイル名からsample_info.csvを自動生成します。")
+        default_cond = st.text_input("Default condition label", "Unknown", key="gen_si_cond")
+        if st.button("Generate", key="gen_si_btn"):
+            with st.spinner("Generating..."):
+                out_path = fix_generate_sample_info(H5AD_DIR, METADATA_DIR, default_cond)
+            df = pd.read_csv(out_path)
+            st.success(f"Generated: {len(df)} samples")
+            st.dataframe(df, use_container_width=True)
+            st.warning("conditionカラムを手動で正しい値に編集してください。")
+
+    # Tool 4: Filter low-quality cells
+    with st.expander("Filter Low-Quality Cells"):
+        st.markdown("ミトコンドリア比率が高い、UMI数が少ない細胞を除去します。")
+        target_file = st.selectbox("File", h5ad_files, format_func=lambda x: x.name, key="filter_file")
+        max_mito = st.slider("Max mito fraction", 0.0, 1.0, 0.2, key="filter_mito")
+        min_umi = st.number_input("Min UMI count", 0, 10000, 200, key="filter_umi")
+        if st.button("Filter", key="filter_btn"):
+            with st.spinner("Filtering..."):
+                _, stats = fix_filter_cells(target_file, max_mito, min_umi)
+            st.success(f"Removed {stats['n_removed']} cells ({stats['pct_removed']})")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Before", stats["n_before"])
+            with col2:
+                st.metric("After", stats["n_after"])
 
 
 # =====================================================================
