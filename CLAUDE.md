@@ -37,6 +37,15 @@ python run_pipeline.py --step bootstrap
 python run_pipeline.py --step lane_b
 python run_pipeline.py --step gene_hodge
 python run_pipeline.py --step enrichment
+python run_pipeline.py --step dual_mode
+```
+
+Additional analysis modules (import and use directly in Python):
+```python
+from scripts.directional import run_directional_decomposition   # Δ⁺/Δ⁻ split
+from scripts.multi_transition import run_multi_transition        # All-transition integration
+from scripts.random_baseline import run_random_baseline          # GF null test
+from scripts.two_axis import run_two_axis_model                  # TRS × MSS trajectory
 ```
 
 ## Data Format Requirements
@@ -141,10 +150,40 @@ h5ad files (per donor)
 [20. Rank Shift Analysis] — Disease vs. control gene ranking comparison
   |
   v
+=== DUAL-MODE ===
+[21. K_N vs Sparse k-NN] — Compare complete graph vs k-NN sparsified Hodge
+[22. Curl Hub Analysis] — Triangle curl scores on sparse graph
+  |
+  v
 === ENRICHMENT ===
-[21. Functional Module Enrichment] — Fisher's exact test against 24 modules
-[22. Gene Annotation] — ENSEMBL/symbol mapping, neuron/glia, TDP-43 prob
+[23. Functional Module Enrichment] — Fisher's exact test against 24 modules
+[24. Gene Annotation] — ENSEMBL/symbol mapping, neuron/glia, TDP-43 prob
 ```
+
+### Additional Analysis Modules (standalone)
+
+These can be run independently after the main pipeline completes:
+
+- **Directional Decomposition** (`scripts/directional.py`)
+  Split Δ into Δ⁺ (correlation gain) and Δ⁻ (correlation loss), run Hodge on
+  each separately. Reveals whether upstream genes drive coordinated activation
+  or decoupling.
+
+- **Multi-Transition Integration** (`scripts/multi_transition.py`)
+  Compute phi across ALL window transitions (not just the primary), then
+  integrate with 4 weighting schemes (uniform, GF-weighted, rank-median, best).
+  Concordance matrix shows stability across the pseudotime axis.
+
+- **Random Matrix Baseline** (`scripts/random_baseline.py`)
+  Generate null GF distribution from random symmetric matrices (same N).
+  Tests whether observed GF is genuine signal or structural artifact of K_N.
+  Critical for interpretation: if observed GF ≤ null p95, the gradient signal
+  is not significant.
+
+- **2-Axis Model** (`scripts/two_axis.py`)
+  TRS (Translation-Resource Score) × MSS (Morphogenesis-Structure Score) per
+  window. TRS = coordination among High-phi genes; MSS = PC1 of Medium-phi genes.
+  If TRS peaks before MSS → supply-demand cascade structure.
 
 ## Key Parameters (project_config.yaml)
 
@@ -185,6 +224,11 @@ results/
       gene_hodge/            — Gene phi scores per cell type
       rank_shift/            — Condition comparison results
       enrichment/            — Functional module enrichment results
+      dual_mode/             — K_N vs sparse k-NN comparison
+      directional/           — Δ⁺/Δ⁻ directional decomposition
+      multi_transition/      — All-transition phi integration
+      random_baseline/       — Null GF distribution
+      two_axis/              — TRS × MSS trajectory
     bootstrap/               — Bootstrap confidence estimates
     figures/                 — Visualization outputs
     qc/                      — Quality control reports

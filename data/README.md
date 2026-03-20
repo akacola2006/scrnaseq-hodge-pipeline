@@ -12,7 +12,8 @@ data/
     ...
   metadata/
     sample_info.csv           <- Required: sample metadata
-    gene_annotation.csv       <- Optional: gene annotations
+    gene_annotation.csv       <- Pre-included: gene annotations (60,403 genes)
+    functional_modules.json   <- Pre-included: 24 functional modules for enrichment
 ```
 
 ## h5ad File Format
