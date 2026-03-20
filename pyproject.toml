@@ -21,6 +21,7 @@ dependencies = [
 
 [project.optional-dependencies]
 gpu = ["torch>=2.0"]
+app = ["streamlit>=1.30", "plotly>=5.18"]
 dev = ["pytest>=7.0", "ruff>=0.1"]
 
 # Entry point: run via `python run_pipeline.py` (not installable as console script)
