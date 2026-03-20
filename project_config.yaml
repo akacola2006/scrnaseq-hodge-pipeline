@@ -101,6 +101,13 @@ gene_hodge:
   min_genes: 10               # Minimum genes for valid analysis
   flow_mode: "sign"           # "sign", "weighted", "edge_product", "edge_weight"
 
+# ── Dual-Mode (K_N vs Sparse k-NN) ──────────────────────────────
+dual_mode:
+  enabled: true                # Run dual-mode comparison
+  k_values: [10, 20, 30, 50, 100]  # k-NN sweep values
+  d_mode: "full"               # "full" (global d_i) or "local" (connected edges only)
+  phi_preservation_min: 0.8    # Min Spearman rho to consider k valid
+
 # ── Rank Shift Analysis ─────────────────────────────────────────
 rank_shift:
   permutation_n: 1000

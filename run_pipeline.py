@@ -47,6 +47,7 @@ STEPS = [
     "bootstrap",
     "lane_b",
     "gene_hodge",
+    "dual_mode",
     "enrichment",
 ]
 
@@ -466,11 +467,80 @@ def run_full_pipeline(start_step: str = None):
                             logger.error("Gene Hodge FAILED: %s", e)
                             failure_logger.log("gene_hodge", e, celltype=upstream_ct)
 
-    # ── Step 11: Enrichment Analysis ─────────────────────────
+    # ── Step 11: Dual-Mode (K_N vs Sparse k-NN) ─────────────
+    if "dual_mode" in steps_to_run:
+        gene_scores_path = dirs["gene_hodge"] / "gene_phi_scores.csv"
+        if gene_scores_path.exists() and lane_a_result:
+            logger.info("\n[STEP 11/12] Running dual-mode Hodge (K_N vs sparse k-NN)...")
+            from scripts.sparse_hodge import run_dual_mode
+
+            ranked = lane_a_result.get("ranked_celltypes", [])
+            if ranked:
+                upstream_ct = ranked[0]
+
+                # We need the delta matrix. Recompute from donor log-corr.
+                if upstream_ct in all_residuals and upstream_ct in all_gene_names:
+                    gene_scores_df = pd.read_csv(gene_scores_path)
+                    gene_set = gene_scores_df["gene"].tolist()
+
+                    from scripts.gene_hodge import resolve_gene_indices, precompute_donor_log_corr
+
+                    gene_indices, resolved_genes = resolve_gene_indices(
+                        gene_set, all_gene_names[upstream_ct],
+                    )
+
+                    if len(resolved_genes) >= config.GENE_HODGE_MIN_GENES:
+                        if adata_dict is None:
+                            from scripts.data_loader import load_all_samples
+                            adata_dict = load_all_samples()
+                        from scripts.data_loader import get_cells_for_celltype
+                        adata_ct = get_cells_for_celltype(adata_dict, upstream_ct)
+
+                        donor_log_corr, donor_window = precompute_donor_log_corr(
+                            all_residuals[upstream_ct],
+                            adata_ct.obs["donor_id"].values.astype(str),
+                            gene_indices, pt_df,
+                        )
+
+                        # Find upstream window
+                        d_corr_data = lane_a_result.get("distance_decomp", {}).get(upstream_ct, {})
+                        d_corrs = d_corr_data.get("d_corr", [])
+                        w_pairs = d_corr_data.get("window_pairs", [])
+                        if d_corrs:
+                            w_star = w_pairs[np.argmax(d_corrs)][0]
+                        else:
+                            w_star = 0
+
+                        # Compute delta matrix
+                        from scripts.gene_hodge import _window_mean_log
+                        donor_ids = list(donor_log_corr.keys())
+                        mean_w = _window_mean_log(donor_log_corr, donor_window, donor_ids, w_star)
+                        mean_w1 = _window_mean_log(donor_log_corr, donor_window, donor_ids, w_star + 1)
+
+                        if mean_w is not None and mean_w1 is not None:
+                            delta = mean_w1 - mean_w
+
+                            try:
+                                dual_result = run_dual_mode(
+                                    delta, resolved_genes,
+                                    output_dir=dirs["gene_hodge"] / "dual_mode",
+                                )
+                                logger.info(
+                                    "Dual-mode: K_N GF=%.4f, optimal sparse k=%s GF=%s, phi_rho=%s",
+                                    dual_result["kn"]["gf"],
+                                    dual_result.get("optimal_k"),
+                                    f'{dual_result["optimal_gf"]:.4f}' if dual_result["optimal_gf"] else "N/A",
+                                    f'{dual_result["optimal_phi_rho"]:.4f}' if dual_result["optimal_phi_rho"] else "N/A",
+                                )
+                            except Exception as e:
+                                logger.error("Dual-mode FAILED: %s", e)
+                                failure_logger.log("dual_mode", e, celltype=upstream_ct)
+
+    # ── Step 12: Enrichment Analysis ──────────────────────────
     if "enrichment" in steps_to_run:
         gene_scores_path = dirs["gene_hodge"] / "gene_phi_scores.csv"
         if gene_scores_path.exists():
-            logger.info("\n[STEP 11] Running functional enrichment analysis...")
+            logger.info("\n[STEP 12/12] Running functional enrichment analysis...")
             from scripts.enrichment import (
                 run_enrichment_analysis, annotate_gene_hodge_results,
                 load_functional_modules,
