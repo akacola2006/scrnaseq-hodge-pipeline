@@ -1,0 +1,189 @@
+# IDS Pipeline Configuration
+# ==========================
+# Copy this file and modify for your analysis
+
+# ==========================================================================
+# Directory Paths (relative to this config file or absolute)
+# ==========================================================================
+
+# Base directory - auto-detected if not specified
+# base_dir: /path/to/project
+
+# Data directory (where expression files are)
+# data_dir: /path/to/data
+
+# Results output directory
+# results_dir: /path/to/results
+
+# ==========================================================================
+# Data Files
+# ==========================================================================
+
+# Gene mapping file (ENSG <-> Symbol)
+# If not specified, searches common locations
+# gene_mapping_file: /path/to/gene_mapping_enhanced.json
+
+# Module definition file
+# If not specified, searches for 24_functional_modules_fixed.json
+# module_file: /path/to/modules.json
+
+# ==========================================================================
+# NVU Group Mapping
+# ==========================================================================
+# Maps cell type names to NVU groups
+# Uses substring matching (any pattern in cell_type string)
+
+nvu_mapping:
+  Vascular:
+    - Vasc.Endo
+    - Vasc.Fibro
+    - Vasc.Mural
+    - Endo
+    - VLMC
+    - Peri
+  Glia:
+    - Glia.Astro
+    - Glia.Oligo
+    - Glia.Micro
+    - Glia.OPC
+    - Astro
+    - Oligo
+    - OPC
+    - Micro
+  Excitatory:
+    - Ex.L2
+    - Ex.L3
+    - Ex.L4
+    - Ex.L5
+    - Ex.L6
+    - Ex.RORB
+    - Ex.THEMIS
+  Inhibitory:
+    - In.
+    - Inh.
+    - VIP
+    - PVALB
+    - SST
+    - LAMP5
+  VAT1L:
+    - VAT1L
+    - Ex.L5.VAT1L
+
+# ==========================================================================
+# Analysis Parameters
+# ==========================================================================
+
+# Number of pseudotime bins
+n_bins: 25
+
+# φ threshold for onset detection
+phi_threshold: 0.5
+
+# Minimum cells per group for analysis
+min_cells: 10
+
+# Small epsilon for numerical stability
+eps: 1.0e-8
+
+# ==========================================================================
+# ALS Stress Components
+# ==========================================================================
+# Weights must sum to 1.0
+
+stress_components:
+  TDP43_targets:
+    weight: 0.30
+    genes:
+      - STMN2
+      - UNC13A
+      - ELAVL4
+      - KCNQ2
+      - PFKP
+      - KALRN
+      - SYT1
+      - GRIN2B
+      - CACNA1A
+      - SCN2A
+
+  STMN2_pathway:
+    weight: 0.20
+    genes:
+      - STMN1
+      - STMN2
+      - STMN3
+      - STMN4
+      - MAPT
+      - MAP2
+      - MAP1B
+      - DPYSL2
+      - DPYSL3
+
+  stress_granule:
+    weight: 0.15
+    genes:
+      - G3BP1
+      - G3BP2
+      - TIA1
+      - TIAL1
+      - FUS
+      - TARDBP
+      - HNRNPA1
+      - HNRNPA2B1
+      - ATXN2
+
+  ER_stress:
+    weight: 0.15
+    genes:
+      - HSPA5
+      - DDIT3
+      - ATF4
+      - XBP1
+      - ATF6
+      - ERN1
+      - EIF2AK3
+      - PDIA4
+      - CALR
+
+  cytoskeleton:
+    weight: 0.10
+    genes:
+      - NEFL
+      - NEFM
+      - NEFH
+      - TUBB3
+      - TUBA1A
+      - ACTB
+      - ACTG1
+      - MAP1A
+      - MAP4
+      - VIM
+
+  inflammation:
+    weight: 0.10
+    genes:
+      - IL1B
+      - IL6
+      - TNF
+      - C1QA
+      - C1QB
+      - C1QC
+      - C3
+      - CD68
+      - TREM2
+      - TYROBP
+      - AIF1
+      - CX3CR1
+      - P2RY12
+
+# ==========================================================================
+# Output Settings
+# ==========================================================================
+
+# Figure DPI
+figure_dpi: 150
+
+# Save intermediate files
+save_intermediate: true
+
+# Verbose output
+verbose: true
