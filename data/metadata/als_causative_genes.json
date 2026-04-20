@@ -1,0 +1,28 @@
+{
+  "summary": {
+    "total_modules": 1,
+    "module_sizes": {
+      "ALS_Genes": 10
+    },
+    "creation_date": "2025-07-15 04:08:01",
+    "description": "ALS-causative gene reference for Part II analysis (Section 7.5, 8.8). Excluded from the Part III 23-module causal pipeline.",
+    "sources": {
+      "GO_database": "Enrichr GO 2023",
+      "lncRNA_source": "ENSG_allgene_allcharacter.csv"
+    }
+  },
+  "modules": {
+    "ALS_Genes": [
+      "SOD1",
+      "VCP",
+      "TIA1",
+      "TARDBP",
+      "C9orf72",
+      "TBK1",
+      "OPTN",
+      "FUS",
+      "UBQLN2",
+      "SQSTM1"
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 {
   "summary": {
-    "total_modules": 23,
+    "total_modules": 24,
     "module_sizes": {
       "Synaptic": 833,
       "Oxidative_Stress": 1649,
@@ -13,6 +13,7 @@
       "Ion_Transport": 1033,
       "Mitochondria": 1035,
       "ER_Stress": 1345,
+      "ALS_Genes": 10,
       "DNA_Repair": 2443,
       "Cell_Cycle": 1358,
       "Cytoskeleton": 2638,
@@ -30,8 +31,7 @@
     "sources": {
       "GO_database": "Enrichr GO 2023",
       "lncRNA_source": "ENSG_allgene_allcharacter.csv"
-    },
-    "description": "23 functional modules used in Part III module-level causal analysis (Section 9.1). ALS_Genes module separated into als_causative_genes.json (Part II reference)."
+    }
   },
   "modules": {
     "Synaptic": [
@@ -14216,6 +14216,18 @@
       "ZNF177",
       "ZNRF4",
       "ZW10"
+    ],
+    "ALS_Genes": [
+      "SOD1",
+      "VCP",
+      "TIA1",
+      "TARDBP",
+      "C9orf72",
+      "TBK1",
+      "OPTN",
+      "FUS",
+      "UBQLN2",
+      "SQSTM1"
     ],
     "DNA_Repair": [
       "ABL1",
