@@ -91,13 +91,24 @@ The following reference files are already included in `data/metadata/`:
   - Used for: mitochondrial gene detection, ENSEMBL-to-symbol mapping,
     neuron/glia classification, gene-level annotation of results
 
-- **`functional_modules.json`** — 24 functional gene modules for enrichment analysis
+- **`functional_modules.json`** — **23 functional gene modules** for enrichment analysis
+  (paper Section 9.1 Part III module-level causal pipeline)
   - Modules: Synaptic, Oxidative_Stress, Protein_Homeostasis, RNA_Processing,
     Apoptosis, Autophagy, Inflammation, Calcium_Signaling, Ion_Transport,
-    Mitochondria, ER_Stress, ALS_Genes, DNA_Repair, Cell_Cycle, Cytoskeleton,
-    Metabolism, ECM, Angiogenesis, Growth_Factors, Transcription, Epigenetic,
-    Complement, Myelination, lncRNA
-  - Used for: Fisher's exact test enrichment of upstream gene sets
+    Mitochondria, ER_Stress, DNA_Repair, Cell_Cycle, Cytoskeleton, Metabolism,
+    ECM, Angiogenesis, Growth_Factors, Transcription, Epigenetic, Complement,
+    Myelination, lncRNA
+  - Used for: Fisher's exact test enrichment (Part I `scripts/enrichment.py`)
+    and module-level causal analysis (Part III `part3/compute_module_phi.py`)
+
+- **`als_causative_genes.json`** — ALS-causative gene reference (10 genes)
+  - Separated from the main module set for clarity: Part II uses this for
+    ALS-gene hierarchy analysis (Section 7.5, 8.8), while Part III excludes
+    it from the 23-module causal pipeline (Section 9.1)
+
+- **`functional_modules_full24.json`** — Backup of the original 24-module file
+  (23 functional modules + ALS_Genes combined). Kept for reproducibility of
+  any pre-paper analysis that used the combined form.
 
 ## Pipeline Architecture
 
@@ -158,7 +169,7 @@ If bootstrap is skipped or unstable, Lane B will not execute.
   |
   v
 === ENRICHMENT ===
-[23. Functional Module Enrichment] — Fisher's exact test against 24 modules
+[23. Functional Module Enrichment] — Fisher's exact test against 23 modules
 [24. Gene Annotation] — ENSEMBL/symbol mapping, neuron/glia, TDP-43 prob
 ```
 
@@ -186,6 +197,76 @@ These can be run independently after the main pipeline completes:
   TRS (Translation-Resource Score) × MSS (Morphogenesis-Structure Score) per
   window. TRS = coordination among High-phi genes; MSS = PC1 of Medium-phi genes.
   If TRS peaks before MSS → supply-demand cascade structure.
+
+### 3φ Residual Framework (Section 4.1-4.2, 6.15)
+
+Three extensions to the Part I pipeline that separate disease-specific
+signal from healthy-state co-expression topology:
+
+- **3φ Residual Framework** (`scripts/three_phi_residual.py`)
+  Computes φ_static (PN-only), φ_disease (disease-only), φ_condition (pooled).
+  Poly3 residual regression (φ_disease ~ φ_static) + standardised z-scores.
+  Basis for Table 1 manifold preservation R² and Rewiring/Collapse
+  classification (Section 4.2).
+
+- **All-gene Insertion 3φ** (`scripts/allgene_insertion.py`)
+  Inserts each protein-coding gene one-by-one into the CT-specific base set
+  (200–3,500 genes) and recomputes the three φ variants. Output feeds the
+  NEMF genome-wide screen.
+
+- **NEMF Screen** (`scripts/nemf_screen.py`)
+  Genome-wide matched-null z-score analysis across ~8,874 protein-coding
+  genes × 10 cell types. Identifies genes with z < −2 in ≥K CTs (NEMF is
+  the sole gene meeting ≥7/10 CT criterion). Computes Bonferroni + binomial
+  null FDR and cross-CT ρ correlation axes (Fig. 6B).
+
+- **SALS-only DE + GSEA rank test** (`scripts/de_sals_only.py`)
+  PyDESeq2 pseudobulk DE with `~ condition + sex` design. Gene-class
+  one-sided Mann-Whitney U rank test (RPL+RPS, Translation_full = RPL+RPS+EIF+EEF).
+  Reproduces Section 4.2 per-CT log₂FC tables and Pooled neurons p = 5.6×10⁻²¹.
+
+### External Benchmarks (`benchmark/`)
+
+See `benchmark/README.md` for complete list. Five benchmarks:
+
+| Benchmark             | Paper Section | Key number           |
+|-----------------------|---------------|----------------------|
+| TimeVault TAS         | 2.3           | AUC = 0.9475         |
+| Norman Perturb-seq    | 2.4           | Top-1 = 66.4 %       |
+| Shen CRISPR           | 2.5           | p = 0.002            |
+| Glioma (TCGA + GTEx)  | 2.6           | Null GF = 0.4248     |
+| Mendelian Randomization | 4.5 / 8.7   | OR = 0.988           |
+
+### Part III (`part3/`)
+
+Paper Section 9-11 module-level causal analysis (43 CTs × 23 functional
+modules × diffusion pseudotime PT_dpt × NOTEARS + LiNGAM + time-lag +
+cross-dataset concordance with GSE212630). **Fully implemented** after
+migrating 104 files from the author's `ids_causal_analysis/` research
+directory.
+
+Structure:
+- `ids_pipeline/` (8 files) — Main Python API + CLI + config template
+- `scripts/` (52 files) — Phase 5-13 analysis scripts, ids_core.py,
+  NOTEARS + LiNGAM (03a/b/c), GSE212630 cross-dataset (9 files), fire
+  origin, MMC closure, STMN2/TDP-43 analyses, PTv2 robustness, tests
+- `reports/` (24 files) — Phase reports + 24_functional_modules.json
+- `docs/` (18 files) — project-level narrative documentation
+
+Usage:
+```python
+from part3.ids_pipeline import IDSPipeline
+pipeline = IDSPipeline()
+results = pipeline.run(expression_file='expr.csv', metadata_file='meta.csv')
+```
+
+Or CLI:
+```bash
+python part3/ids_pipeline/run_pipeline.py expr.csv meta.csv -o results/
+```
+
+See `part3/README.md` for the complete paper Sections ↔ scripts mapping
+and step-by-step reproduction instructions.
 
 ## Key Parameters (project_config.yaml)
 
