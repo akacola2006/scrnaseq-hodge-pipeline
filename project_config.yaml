@@ -59,6 +59,10 @@ preprocessing:
 # ── PCA ──────────────────────────────────────────────────────────
 pca:
   k: 100                    # Number of principal components
+                             # NOTE (paper reproduction): UNIFIED_PAPER_WORD_v4 uses k=30
+                             # (Methods §6.2; yields ~922 candidate genes for Oligo).
+                             # k=100 is the sensitivity-analysis value; set k=30 to
+                             # reproduce the exact published gene set.
   n_oversamples: 10          # Oversampling for randomized SVD
   n_iter: 5                  # Power iterations for randomized SVD
   hvg_n: null                # Number of HVGs (null = use all detected genes)
@@ -72,7 +76,12 @@ pseudotime:
 # ── Lane A (Cell-type Level) ────────────────────────────────────
 lane_a:
   n_windows: 8               # Number of pseudotime windows
+                             # NOTE (paper reproduction): UNIFIED_PAPER_WORD_v4 uses 6 windows
+                             # of 4 donors each (24-donor cohort; Methods §2.1).
+                             # Set n_windows=6 to reproduce published pseudotime partitioning.
   min_donors_per_window: 3    # Minimum donors per window for stable estimation
+                             # NOTE (paper reproduction): paper cohort has 4 donors/window
+                             # (24 donors / 6 windows). For smaller cohorts, reduce accordingly.
 
 # ── Hodge Quality ────────────────────────────────────────────────
 hodge:
