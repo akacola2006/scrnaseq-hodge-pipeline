@@ -124,6 +124,21 @@ scrnaseq_hodge_pipeline/
 
 ## Quick start
 
+> Five-line reproduction (Part I core pipeline only):
+> ```bash
+> pip install -r requirements.txt
+> # place h5ad files under data/h5ad/ and metadata under data/metadata/
+> # (see Step 2 below for required schema)
+> # edit project_config.yaml (cell_types, conditions, hardware) to match your data
+> python run_pipeline.py
+> ```
+> External benchmarks (Norman / Shen / TimeVault / Glioma / MR) require
+> additional public datasets that this repository does **not** redistribute.
+> Each `benchmark/<name>/README.md` lists the download source. Once data is
+> placed under `data/external/<subdir>/` (or the corresponding `ALS_*`
+> environment variable is exported; see `project_config.yaml`
+> `external_data:` section), the benchmark scripts run unchanged.
+
 ### 1. 環境セットアップ
 
 ```bash
@@ -138,6 +153,20 @@ pip install pydeseq2==0.5.0
 # Optional: MR analysis (R)
 # install.packages(c("TwoSampleMR", "coloc", "ieugwasr"))
 ```
+
+### OpenGWAS JWT (for MR scripts only)
+
+The Mendelian-randomization scripts in `benchmark/mendelian_randomization/`
+require an OpenGWAS JWT. Obtain one from
+[api.opengwas.io/profile](https://api.opengwas.io/profile/) and export it
+**before** launching R — never commit the token to source control:
+
+```bash
+export OPENGWAS_JWT="<your token>"   # or add it to ~/.Renviron
+```
+
+`set_opengwas_token.R` reads the environment variable and verifies the
+token is live.
 
 ### 2. データ配置
 
