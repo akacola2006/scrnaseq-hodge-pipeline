@@ -9,8 +9,11 @@ user_lib <- file.path(Sys.getenv("USERPROFILE"), "AppData", "Local", "R", "win-l
 
 library(ieugwasr)
 
-PLINK_DIR <- "D:/Projects/MR/tools"
-REF_DIR   <- "D:/Projects/MR/data/ld_reference"
+source("paths.R")
+PLINK_DIR <- Sys.getenv("ALS_PLINK_DIR",
+                       unset = file.path(MR_RESULTS_BASE, "tools"))
+REF_DIR   <- Sys.getenv("ALS_LD_REF_DIR",
+                       unset = file.path(MR_RESULTS_BASE, "ld_reference"))
 dir.create(PLINK_DIR, recursive = TRUE, showWarnings = FALSE)
 dir.create(REF_DIR, recursive = TRUE, showWarnings = FALSE)
 

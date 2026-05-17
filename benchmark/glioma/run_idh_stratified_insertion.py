@@ -16,7 +16,7 @@ from scipy.stats import spearmanr, ttest_1samp
 from pathlib import Path
 import time
 
-BASE_DIR = Path("D:/Projects/glioma_hodge")
+BASE_DIR = Path(os.environ.get("ALS_GLIOMA_DIR", "data/external/glioma_hodge"))
 OUTPUT = BASE_DIR / "condition_phi" / "idh_stratified"
 OUTPUT.mkdir(parents=True, exist_ok=True)
 

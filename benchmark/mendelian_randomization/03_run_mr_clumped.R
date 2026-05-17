@@ -15,16 +15,14 @@ library(dplyr)
 library(ggplot2)
 
 # --- Paths ---
-DATA_DIR      <- "D:/Projects/MR/data/bryois_eqtl"
-ALS_GWAS_FILE <- "D:/Projects/MR/data/als_gwas/GCST90027164_buildGRCh37.tsv.gz"
-OUTPUT_DIR    <- "D:/Projects/MR/results_clumped"
-PLINK_PATH    <- "D:/Projects/MR/tools/plink.exe"
-REF_DIR       <- "D:/Projects/MR/data/ld_reference"
+source("paths.R")
+OUTPUT_DIR <- file.path(MR_RESULTS_BASE, "clumped")
+PLINK_PATH <- Sys.getenv("ALS_PLINK_PATH",
+                        unset = file.path(MR_RESULTS_BASE, "tools/plink.exe"))
+REF_DIR    <- Sys.getenv("ALS_LD_REF_DIR",
+                        unset = file.path(MR_RESULTS_BASE, "ld_reference"))
 
 dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
-
-STABLE_HIGH_FILE <- "D:/Projects/MR/sals_analysis_frozen_20260211/results/track_b/sals_upstream_gene_list/stable_high_genes.csv"
-DARKGREY_FILE    <- "D:/Projects/MR/sals_analysis_frozen_20260211/results/track_b/laneB/darkgrey_identity/darkgrey_genes.tsv"
 
 # --- Detect EUR reference bfile ---
 detect_bfile <- function() {

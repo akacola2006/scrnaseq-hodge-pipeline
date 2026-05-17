@@ -17,12 +17,9 @@ library(coloc)
 library(data.table)
 library(dplyr)
 
-DATA_DIR      <- "D:/Projects/MR/data/bryois_eqtl"
-ALS_GWAS_FILE <- "D:/Projects/MR/data/als_gwas/GCST90027164_buildGRCh37.tsv.gz"
-OUTPUT_DIR    <- "D:/Projects/MR/results_coloc"
+source("paths.R")
+OUTPUT_DIR <- file.path(MR_RESULTS_BASE, "coloc")
 dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
-
-STABLE_HIGH_FILE <- "D:/Projects/MR/sals_analysis_frozen_20260211/results/track_b/sals_upstream_gene_list/stable_high_genes.csv"
 
 # ============================================================
 # Load data

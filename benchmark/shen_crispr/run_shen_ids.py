@@ -21,6 +21,7 @@ Outputs:
 """
 import logging
 import json
+import os
 import time
 import gc
 import gzip
@@ -33,14 +34,12 @@ import scipy.sparse as sp
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 logger = logging.getLogger(__name__)
 
-# ── Adjust these paths for your machine ──
-# On Cowork VM:
-DATA_DIR = Path("/sessions/great-affectionate-newton/gse274058_extract")
-OUTPUT_DIR = Path("/sessions/great-affectionate-newton/p4_validation/results")
-
-# On analysis machine (uncomment and adjust):
-# DATA_DIR = Path(r"D:\Projects\scRNAseq\p4_validation\gse274058_extract")
-# OUTPUT_DIR = Path(r"D:\Projects\scRNAseq\p4_validation\results")
+# Paths are resolved from environment variables with sensible defaults.
+# Override via:
+#   ALS_SHEN_DATA_DIR    -> directory containing GSE274058 library folders
+#   ALS_SHEN_OUTPUT_DIR  -> output directory for Hodge results
+DATA_DIR = Path(os.environ.get("ALS_SHEN_DATA_DIR", "data/external/gse274058_extract"))
+OUTPUT_DIR = Path(os.environ.get("ALS_SHEN_OUTPUT_DIR", "data/external/shen_results"))
 
 SAMPLES = [
     "GSM8442771_B1_1", "GSM8442772_B1_2", "GSM8442773_B2_1",

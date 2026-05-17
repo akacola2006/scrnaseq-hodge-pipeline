@@ -16,6 +16,25 @@ data:
   gene_annotation: "data/metadata/gene_annotation.csv"  # Gene annotation (ENSEMBL ID, chromosome, etc.)
   functional_modules: "data/metadata/functional_modules.json"  # Functional gene modules for enrichment
 
+# ── External Data (benchmark / reproduction inputs) ──────────────
+# Place the public benchmark datasets under data/external/<subdir>/ or
+# override the path via the matching environment variable. Each script
+# under benchmark/ resolves its path with the precedence
+#   environment variable  >  project_config.yaml  >  built-in default.
+# None of the listed datasets are redistributed by this repository; see
+# each benchmark/<subdir>/README.md for the original source.
+external_data:
+  # Bryois et al. brain-region cis-eQTL summary statistics
+  bryois_eqtl_dir: "data/external/bryois_eqtl"          # env: ALS_BRYOIS_EQTL_DIR
+  # van Rheenen 2021 ALS GWAS (GCST90027164)
+  als_gwas_file:  "data/external/als_gwas/GCST90027164_buildGRCh37.tsv.gz"  # env: ALS_GWAS_FILE
+  # Frozen analysis directory (stable-High / dark-grey gene lists; MR inputs)
+  frozen_dir:     "data/external/sals_analysis_frozen_20260211"             # env: ALS_FROZEN_DIR
+  # MR result output directory
+  mr_results_dir: "data/external/mr_results"                                # env: ALS_MR_RESULTS_DIR
+  # Glioma (TCGA + GTEx) Hodge analysis working directory
+  glioma_dir:     "data/external/glioma_hodge"                              # env: ALS_GLIOMA_DIR
+
 # ── Cell Type Configuration ──────────────────────────────────────
 cell_types:
   column_name: "CellType"    # Column name in h5ad .obs for cell type labels

@@ -16,9 +16,8 @@ library(data.table)
 library(dplyr)
 library(ggplot2)
 
-DATA_DIR      <- "D:/Projects/MR/data/bryois_eqtl"
-ALS_GWAS_FILE <- "D:/Projects/MR/data/als_gwas/GCST90027164_buildGRCh37.tsv.gz"
-OUTPUT_DIR    <- "D:/Projects/MR/results_rqc"
+source("paths.R")
+OUTPUT_DIR <- file.path(MR_RESULTS_BASE, "rqc")
 dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
 PTHRESH <- 5e-6
@@ -453,7 +452,7 @@ if (!is.null(res_combined)) {
 
 # Gene overlap
 cat("\n=== Gene Overlap ===\n")
-stable_high <- fread("D:/Projects/MR/sals_analysis_frozen_20260211/results/track_b/sals_upstream_gene_list/stable_high_genes.csv")
+stable_high <- fread(STABLE_HIGH_FILE)
 overlap <- intersect(rqc_all, stable_high$symbol)
 cat(sprintf("RQC genes in Stable-High: %d / %d\n", length(overlap), length(rqc_all)))
 if (length(overlap) > 0) cat(sprintf("  Overlap: %s\n", paste(overlap, collapse = ", ")))

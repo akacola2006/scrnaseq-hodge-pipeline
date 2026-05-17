@@ -11,7 +11,9 @@ library(data.table)
 library(dplyr)
 library(ggplot2)
 
-OUTPUT_DIR <- "D:/Projects/MR/results_final"
+source("paths.R")
+OUTPUT_DIR <- file.path(MR_RESULTS_BASE, "final")
+COLOC_DIR  <- file.path(MR_RESULTS_BASE, "coloc")
 dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
 # ============================================================
@@ -129,7 +131,7 @@ cat("  Saved Fig_TrackB_detail\n")
 # ============================================================
 cat("=== Figure 3: Coloc Results ===\n")
 
-coloc_df <- fread("D:/Projects/MR/results_coloc/coloc_results.csv")
+coloc_df <- fread(file.path(COLOC_DIR, "coloc_results.csv"))
 
 # Top 15 genes by PP.H4
 top_coloc <- head(coloc_df[order(-PP.H4)], 15)

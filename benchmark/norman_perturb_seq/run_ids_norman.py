@@ -14,6 +14,7 @@ Key components faithfully ported from R2b:
 import json
 import gc
 import logging
+import os
 import time
 import sys
 import numpy as np
@@ -26,8 +27,8 @@ from sklearn.metrics import accuracy_score
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 logger = logging.getLogger(__name__)
 
-DATA_DIR = Path("D:/Projects/cell navi/cellnavi_ids/data/replogle")
-OUTPUT_DIR = Path("D:/Projects/cell navi/benchmark/results")
+DATA_DIR = Path(os.environ.get("ALS_NORMAN_DATA_DIR", "data/external/replogle"))
+OUTPUT_DIR = Path(os.environ.get("ALS_NORMAN_OUTPUT_DIR", "data/external/norman_results"))
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 

@@ -31,9 +31,8 @@ library(data.table)
 library(dplyr)
 library(ggplot2)
 
-DATA_DIR      <- "D:/Projects/MR/data/bryois_eqtl"
-ALS_GWAS_FILE <- "D:/Projects/MR/data/als_gwas/GCST90027164_buildGRCh37.tsv.gz"
-OUTPUT_DIR    <- "D:/Projects/MR/results_mam"
+source("paths.R")
+OUTPUT_DIR <- file.path(MR_RESULTS_BASE, "mam")
 dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
 PTHRESH <- 5e-8

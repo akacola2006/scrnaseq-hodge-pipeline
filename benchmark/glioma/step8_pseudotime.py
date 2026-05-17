@@ -17,6 +17,7 @@ Usage:
 """
 import json
 import logging
+import os
 import time
 from itertools import combinations
 from pathlib import Path
@@ -35,7 +36,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-BASE = Path(r"D:\Projects\IDS paper writing\glioma_hodge")
+BASE = Path(os.environ.get("ALS_GLIOMA_DIR", "data/external/glioma_hodge"))
 DATA_DIR = BASE / "data"
 OUT_DIR = BASE / "results" / "pseudotime"
 

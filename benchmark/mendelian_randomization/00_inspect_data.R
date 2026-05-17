@@ -4,7 +4,7 @@ user_lib <- file.path(Sys.getenv("USERPROFILE"), "AppData", "Local", "R", "win-l
 install.packages("R.utils", lib = user_lib, repos = "https://cran.r-project.org", quiet = TRUE)
 library(data.table)
 
-DATA_DIR <- "D:/Projects/MR/data/bryois_eqtl"
+source("paths.R")
 
 # 1. SNP position file
 cat("=== SNP Position File ===\n")
@@ -33,7 +33,7 @@ cat("N significant (p<5e-8):", sum(eqtl_full$V4 < 5e-8), "\n")
 cat("\nSample gene IDs:", paste(head(unique(eqtl_full$V1), 5), collapse = ", "), "\n")
 
 # 5. Check ALS GWAS
-als_file <- "D:/Projects/MR/data/als_gwas/GCST90027164_buildGRCh37.tsv.gz"
+als_file <- ALS_GWAS_FILE
 if (file.exists(als_file) && file.size(als_file) > 1000) {
   cat("\n=== ALS GWAS ===\n")
   als <- fread(als_file, nrows = 5)
