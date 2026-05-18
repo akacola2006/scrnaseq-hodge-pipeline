@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 import warnings
+import os
 warnings.filterwarnings('ignore')
 
 print("="*80)
@@ -28,7 +29,7 @@ print("Phase 5″: Subtype-Specific Upstream/Downstream Validation")
 print("="*80)
 
 # Paths
-base_dir = Path('/home/akaco/als/motor_cortex_analysis')
+base_dir = Path(os.environ.get("ALS_PART3_BASE_DIR", "data/external/motor_cortex_analysis"))
 ids_dir = base_dir / 'ids_causal_analysis'
 output_dir = ids_dir / 'results' / 'phase5pp_subtype_validation'
 output_dir.mkdir(parents=True, exist_ok=True)

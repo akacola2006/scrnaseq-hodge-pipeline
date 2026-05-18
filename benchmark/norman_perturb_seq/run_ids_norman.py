@@ -106,7 +106,23 @@ def hodge_edge_weight_phi(delta):
     div_i   = -sum_{j != i} |delta_ij| * sign(d_i - d_j)
     phi     = (div - mean(div)) / N
 
-    Ascending phi = upstream driver.
+    Sign convention
+    ---------------
+    This function returns the *raw* Hodge potential ``phi_raw``. With the
+    flow definition above, divergence is most negative at sources, so
+    ``phi_raw`` is **ascending = upstream** (lowest phi_raw = predicted
+    source) -- this is the convention used internally throughout the
+    pipeline (BV.61, BV.65, etc.).
+
+    The manuscript uses a *source-oriented* presentation where larger
+    values denote more upstream / source-like behaviour. To get that
+    convention, negate the returned value::
+
+        phi_raw       = hodge_edge_weight_phi(delta)   # ascending = upstream
+        source_score  = -phi_raw                       # descending = upstream
+
+    The ranking in this script is by ascending ``phi_raw`` (equivalently,
+    descending ``source_score``); they differ only by sign.
     """
     d = np.linalg.norm(delta, axis=1)
     abs_delta = np.abs(delta).copy()
@@ -115,6 +131,18 @@ def hodge_edge_weight_phi(delta):
     div = -(abs_delta * sign_d).sum(axis=1)
     N = delta.shape[0]
     return (div - div.mean()) / N
+
+
+def hodge_source_score(delta):
+    """Source-oriented potential (manuscript convention).
+
+    Returns ``-hodge_edge_weight_phi(delta)`` so that larger values
+    indicate more upstream / source-like genes, matching the sign
+    convention used in the manuscript figures and tables
+    (e.g. "Oligo phi = 0.900" with positive = upstream). Internally
+    identical to ranking by ascending ``hodge_edge_weight_phi``.
+    """
+    return -hodge_edge_weight_phi(delta)
 
 
 def global_whitening(ctrl_expr):

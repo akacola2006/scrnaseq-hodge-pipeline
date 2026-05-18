@@ -6,6 +6,29 @@ Parts I–II, extending to 43 cell types and 23 functional modules with
 diffusion pseudotime (PT_dpt), NOTEARS + LiNGAM causal inference, and
 cross-dataset concordance against GSE212630 (Wang et al. 2023).
 
+> **Portability note.** The Part III content has two layers:
+>
+> - **`ids_pipeline/`** -- the portable, end-user-facing Python API and
+>   CLI. New users should run Part III through this module
+>   (`python part3/ids_pipeline/run_pipeline.py expr.csv meta.csv`); it
+>   reads paths from a YAML config and is the recommended entry point.
+> - **`scripts/`** -- 52 legacy analysis scripts migrated as-is from the
+>   author's local analysis tree. They are kept in the repository for
+>   provenance (each script corresponds 1:1 to a specific table / figure
+>   / supplementary result), but they were written against the author's
+>   filesystem and import expectations. The repository version reads the
+>   formerly-hardcoded analysis root from the `ALS_PART3_BASE_DIR`
+>   environment variable (default `data/external/motor_cortex_analysis`).
+>   Place the corresponding analysis outputs at that location, or export
+>   `ALS_PART3_BASE_DIR` to point at your local copy, before running any
+>   individual script.
+>
+> Section 9-11 supplementary findings (ATM pathway 3-criteria, NVU DAG,
+> MMC-1 cascade, GSE212630 cross-dataset concordance) were computed with
+> the legacy scripts on the author's machine; the `ids_pipeline` API
+> exposes the same algorithms but does not yet ship the exact frozen
+> per-figure outputs.
+
 ## Directory structure
 
 ```

@@ -12,7 +12,13 @@ Companion code repository for:
 
 離散 Hodge 分解を用いて、**scRNAseq データから疾患の「上流細胞型」と
 「上流遺伝子」を訓練なしで同定**する測定器 (Intrinsic Direction System; IDS)
-の公式実装。論文で報告した全ての主要解析を再現可能な形で収録しています。
+の公式実装。論文で報告した主要解析の **再現用パイプラインと参照スクリプト**
+を収録しています。一部の大規模 GPU 解析 (all-gene insertion 3φ screen,
+Section 6.15 / Appendix AS) は計算負荷の都合で本リポジトリにはアルゴリズム
+記述・出力スキーマ・下流 consumer のみ収録しており、frozen 中間出力に対する
+スクリーニング (NEMF screen など) は再現可能ですが、insertion 自体の再実行
+は frozen 実装が別途必要です (詳細は `scripts/allgene_insertion.py` の
+docstring)。
 
 ## Repository structure
 
@@ -220,20 +226,36 @@ python benchmark/norman_perturb_seq/run_ids_norman.py ...
 
 ## 再現可能性についての注意
 
-本リポジトリは論文で報告した **全ての central findings** を再現可能な形で
-実装しています：
+本リポジトリは論文の central findings の再現用パイプラインを収録していま
+す。直接 runnable な解析と、frozen 中間出力に依存する解析を以下で区別し
+ます。
+
+**End-to-end runnable** (raw data + repo だけで再現可能):
 
 - ✅ **Oligo φ = 0.900** (Section 3.1) — `scripts/lane_a.py`
 - ✅ **LOCO Jaccard = 0.954, ρ = 0.981** (Section 3.1) — `scripts/bootstrap.py`
 - ✅ **Null GF = 0.425** (Section 2.2) — `scripts/random_baseline.py`
 - ✅ **TimeVault TAS AUC = 0.9475** (Section 2.3) — `benchmark/timevault/run_tas.py`
-- ✅ **Norman Top-1 = 66.4 %** (Section 2.4) — `benchmark/norman_perturb_seq/run_ids_norman.py`
+- ✅ **Norman Top-1 ≈ 66 %** (Section 2.4) — `benchmark/norman_perturb_seq/run_ids_norman.py`
 - ✅ **Shen CRISPR p = 0.002** (Section 2.5) — `benchmark/shen_crispr/run_shen_ids.py`
 - ✅ **Glioma Null GF = 0.4248** (Section 2.6) — `benchmark/glioma/run_glioma_pseudotime_insertion.py`
-- ✅ **NEMF z = −6.95 in L3_L5, Bonferroni p = 3.3×10⁻⁸** (Section 8.9) — `scripts/nemf_screen.py`
 - ✅ **MR OR = 0.988, p = 0.159** (Section 4.5) — `benchmark/mendelian_randomization/02_run_mr.R`
-- ✅ **ATM pathway p = 0.018, 8/9 concordant** (Section 10) — `part3/scripts/Phase9p_vascular_driver_state_identification.py`
-- ✅ **GSE212630 83% cross-dataset concordance** (Section 10) — `part3/scripts/analyze_GSE212630_with_ids_core.py`
+
+**Runnable against frozen intermediate outputs** (raw GPU step is in the
+frozen analysis archive, not in this public repo):
+
+- ⚙️ **NEMF z = −6.95 in L3_L5, Bonferroni p = 3.3×10⁻⁸** (Section 8.9)
+  — `scripts/nemf_screen.py` consumes the frozen
+  `results/allgene_3phi/verification/zscore_matrix_wide.csv`; the
+  upstream all-gene insertion step (`scripts/allgene_insertion.py`) is a
+  reference interface only (see its docstring for the frozen production
+  implementation path).
+- ⚙️ **ATM pathway p = 0.018, 8/9 concordant** (Section 10) — Part III
+  legacy scripts under `part3/scripts/` reference the author's local
+  analysis tree; portable execution is via the `part3.ids_pipeline` API
+  (see `part3/README.md`).
+- ⚙️ **GSE212630 83% cross-dataset concordance** (Section 10) — same as
+  above.
 
 各数値は対応するスクリプトの実行により再現されます。必要に応じて
 `benchmark/<name>/README.md` および `part3/README.md` の

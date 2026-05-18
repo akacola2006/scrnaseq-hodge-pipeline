@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 import warnings
+import os
 warnings.filterwarnings('ignore')
 
 print("="*80)
@@ -33,7 +34,7 @@ print("Phase PTv2 - Step 1: Building PT_dpt (Diffusion Pseudotime)")
 print("="*80)
 
 # Paths
-base_dir = Path('/home/akaco/als/motor_cortex_analysis')
+base_dir = Path(os.environ.get("ALS_PART3_BASE_DIR", "data/external/motor_cortex_analysis"))
 ids_dir = base_dir / 'ids_causal_analysis'
 input_file = ids_dir / 'results' / 'cell_state_causality' / 'cell_level_features_ALL.csv'
 output_dir = ids_dir / 'results' / 'PTv2_robustness'

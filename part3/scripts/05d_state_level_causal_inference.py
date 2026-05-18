@@ -28,11 +28,12 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 import warnings
+import os
 warnings.filterwarnings('ignore')
 
 # Import causal discovery tools
 import sys
-sys.path.append(str(Path('/home/akaco/als/motor_cortex_analysis/ids_causal_analysis')))
+sys.path.append(str((Path(os.environ.get("ALS_PART3_BASE_DIR", "data/external/motor_cortex_analysis")) / "ids_causal_analysis")))
 
 # Try to import NOTEARS (may need to install)
 try:
@@ -51,7 +52,7 @@ except ImportError:
     LINGAM_AVAILABLE = False
 
 # Paths
-ids_dir = Path('/home/akaco/als/motor_cortex_analysis/ids_causal_analysis')
+ids_dir = (Path(os.environ.get("ALS_PART3_BASE_DIR", "data/external/motor_cortex_analysis")) / "ids_causal_analysis")
 cell_state_dir = ids_dir / 'results' / 'cell_state_causality'
 
 print("="*80)

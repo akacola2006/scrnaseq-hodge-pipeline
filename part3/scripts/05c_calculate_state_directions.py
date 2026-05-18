@@ -29,10 +29,11 @@ from pathlib import Path
 from sklearn.neighbors import NearestNeighbors
 from collections import defaultdict
 import warnings
+import os
 warnings.filterwarnings('ignore')
 
 # Paths
-ids_dir = Path('/home/akaco/als/motor_cortex_analysis/ids_causal_analysis')
+ids_dir = (Path(os.environ.get("ALS_PART3_BASE_DIR", "data/external/motor_cortex_analysis")) / "ids_causal_analysis")
 cell_state_dir = ids_dir / 'results' / 'cell_state_causality'
 
 print("="*80)

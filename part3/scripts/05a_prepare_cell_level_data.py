@@ -28,10 +28,11 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 import warnings
+import os
 warnings.filterwarnings('ignore')
 
 # Paths
-base_dir = Path('/home/akaco/als/motor_cortex_analysis')
+base_dir = Path(os.environ.get("ALS_PART3_BASE_DIR", "data/external/motor_cortex_analysis"))
 ids_dir = base_dir / 'ids_causal_analysis'
 results_dir = ids_dir / 'results'
 cell_state_dir = results_dir / 'cell_state_causality'

@@ -11,19 +11,48 @@ Norman et al. (2019) CRISPRa Perturb-seq in K562 cells.
   (232 groups evaluated after excluding 3 classes with n_cells < 3)
 - **Candidate targets**: 102 genes
 
-## Paper claims (Section 2.4 Table)
+## What the benchmark actually shows
 
-| Method                    | Top-1     | Median Rank | Training | Perturbation Labels |
-|---------------------------|-----------|-------------|----------|---------------------|
-| Random                    | 0.98 %    | 51.5        | —        | —                   |
-| GRNBoost2 (best of 3)     | 7.3 %     | —           | None     | Not used            |
-| d_corr (whitened)         | 57.3 %    | 1.0         | None     | Not used            |
-| **IDS (whitened + Hodge)**| **66.4 %**| **1.0**     | **None** | **Not used**        |
-| DE ranking                | 81.0 %    | 1.0         | None     | Required            |
+The central empirical claim of Section 2.4 is **not** that Hodge φ is a
+uniquely superior ranking heuristic on the complete graph K_N. It is
+that perturbation-source information lives in the **control-normalised
+covariance-response field** (the whitened Δ matrix), and is recoverable
+by any of a family of structural readouts applied to that field.
 
-- IDS vs d_corr: McNemar p = 1.1 × 10⁻⁵ (+9.1 pp improvement)
-- IDS vs DE: McNemar p = 2.1 × 10⁻⁶
-- Union IDS + DE Top-1: 85.3 %
+On the complete graph K_N, IDS φ behaves as one member of a **structural
+family** that also includes L1 strength, PageRank, and eigenvector
+centrality — all of which use the same whitened Δ matrix and reach
+similar Top-1 numbers on Norman (the IDS-specific advantage is small and
+metric-dependent at K_N). The Hodge framework's distinguishing
+contribution is two-fold:
+
+1. **A regime-dependent advantage on sparse k-NN graphs**, where
+   Laplacian inversion recovers source-like nodes that the local
+   centrality measures cannot reach (see the k-NN sweep results
+   referenced in the manuscript and Supplementary BV.63 / BV.64).
+2. **Field-theoretic representation**: the gradient/curl orthogonality,
+   harmonic component, multi-transition integration, and 3φ
+   disease-residualisation against healthy co-expression topology — all
+   of which require the Hodge decomposition rather than a scalar
+   centrality.
+
+| Method                         | Top-1     | Median Rank | Training | Perturbation labels |
+|--------------------------------|-----------|-------------|----------|---------------------|
+| Random                         | 0.98 %    | 51.5        | —        | —                   |
+| GRNBoost2 (best of 3)          | 7.3 %     | —           | None     | Not used            |
+| d_corr (whitened, no Hodge)    | ~57 %     | 1.0         | None     | Not used            |
+| **IDS K_N (whitened + Hodge)** | **~66 %** | **1.0**     | **None** | **Not used**        |
+| DE ranking                     | 81.0 %    | 1.0         | None     | Required            |
+
+- d_corr is the L2 row-norm of the whitened Δ matrix; like IDS φ it uses
+  no perturbation labels.
+- IDS-vs-d_corr Δ Top-1 at K_N is positive but modest; the larger
+  benchmark message is that *every* structural-family readout on the
+  whitened Δ matrix beats the same readout on the un-whitened Δ matrix
+  (the "+9.1 pp from whitening" effect, *not* a Hodge-specific gain).
+- IDS-vs-DE comparisons are reported for completeness; DE uses the
+  perturbation labels, so the relevant baseline for label-free methods
+  is d_corr / PageRank / L1, not DE.
 
 ## Scripts
 
@@ -91,6 +120,11 @@ python benchmark/norman_perturb_seq/run_ids_replogle.py
   Equivalent alternative run (232-group per-target evaluation) yields 65.9 %;
   both numbers refer to the same IDS R2b configuration with minor
   bootstrap/control-subsample differences.
+- At K_N, IDS φ shares the same source ranking with several structural
+  centralities applied to the whitened Δ matrix (L1 strength, PageRank,
+  eigenvector centrality reach comparable Top-1 in the 60s); the
+  Hodge-specific advantage is small at K_N and emerges in the sparse
+  k-NN regime (BV.63 / BV.64 in the manuscript Supplementary).
 - Failure modes (~34 % of groups):
   - Diffuse effectors (MAPK1)
   - Indirect effectors (ARID1A)

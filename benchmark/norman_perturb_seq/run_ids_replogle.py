@@ -67,6 +67,11 @@ def hodge_edge_weight(delta):
     Potential: φ = (div - mean(div)) / N
 
     Returns phi (ascending = upstream driver) and gradient fraction.
+
+    Sign convention: this is the internal pipeline convention
+    (ascending phi = upstream). The manuscript figures use the
+    source-oriented convention (larger = more upstream); to convert,
+    negate phi (``source_score = -phi``).
     """
     N = delta.shape[0]
     d = np.linalg.norm(delta, axis=1)  # per-gene correlation-change magnitude

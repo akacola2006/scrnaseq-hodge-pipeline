@@ -20,6 +20,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.linear_model import LinearRegression
 import matplotlib
+import os
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -40,7 +41,7 @@ except ImportError:
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
-BASE_DIR = Path('/home/akaco/als/motor_cortex_analysis/ids_causal_analysis')
+BASE_DIR = (Path(os.environ.get("ALS_PART3_BASE_DIR", "data/external/motor_cortex_analysis")) / "ids_causal_analysis")
 OUT_DIR = BASE_DIR / 'results_gse212630_triggerstage_v3'
 OUT_DIR.mkdir(exist_ok=True)
 (OUT_DIR / 'tables').mkdir(exist_ok=True)

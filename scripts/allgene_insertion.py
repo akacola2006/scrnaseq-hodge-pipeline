@@ -1,34 +1,47 @@
 """
-All-gene insertion for 3φ framework (Section 6.15, Appendix AS of the paper).
+All-gene insertion for the 3φ framework (Section 6.15, Appendix AS).
 
-For each protein-coding gene in the genome, insert it one-by-one into the
-cell-type-specific base gene set (200-3,500 genes), recompute the per-donor
-log-correlation matrices with the inserted gene included, and record the
-three φ variants (disease, condition, static) as well as their percentile
-position within the base+1 gene ranking.
+STATUS: REFERENCE INTERFACE, NOT A RUNNABLE PIPELINE
+====================================================
+This module documents the algorithm and exposes the public function
+signatures, but the inner production loop is intentionally a stub --
+calling `run_allgene_insertion` or `run_allgene_insertion_ct` raises
+NotImplementedError. The full implementation (~400 lines with batched
+GPU eigendecomposition, checkpointing, and NaN handling) lives in the
+author's analysis archive at
 
-This enables:
-  - Genome-wide screening for disease-specific residual z-scores
-    (basis for NEMF universal downshift finding, Section 8.9)
-  - Per-gene manifold preservation R² computation (Table 1, Section 4.1)
-  - All-gene rewiring/collapse count (Section 4.2)
+    sals_analysis_frozen_20260211/scripts/run_allgene_insertion_3phi.py
+    sals_analysis_frozen_20260211/scripts/run_allgene_insertion_fast.py
 
-GPU-accelerated via PyTorch: for each of ~10,000-19,000 extra genes per CT,
-the insertion requires one updated log-correlation computation per donor.
+and is not redistributed in this public release. The paper's NEMF
+screen, Table 1 manifold-preservation R², and Section 4.2
+rewiring/collapse counts were computed against the *frozen outputs* of
+that implementation (`results/allgene_3phi/{ct}/allgene_3phi.csv`,
+21,722 rows; `zscore_matrix_wide.csv`); the public `scripts.nemf_screen`
+module consumes those frozen outputs directly. To re-run the screen on
+new data, port the algorithm using the per-step recipe below, or
+request the frozen implementation from the corresponding author.
 
-Typical runtime: ~40 hours for all 10 CTs on NVIDIA RTX 5090 (32 GB VRAM).
+What this file does provide:
 
-Usage:
+  - The exact algorithm in commented form (see ``run_allgene_insertion_ct``):
+    per-CT base-set selection by variance, per-donor log-correlation,
+    extra-gene insertion loop, three-φ extraction.
+  - The output schema that downstream consumers (``scripts.nemf_screen``,
+    ``build_zscore_matrix``) expect.
+  - A ``build_zscore_matrix`` helper that assembles per-CT outputs into
+    the (gene × CT) z-score matrix used by the NEMF screen (this part
+    *is* runnable once the per-CT CSVs are available).
+
+For the original purpose of the algorithm see Section 6.15 / Appendix AS:
+inserting each protein-coding gene one-by-one into the cell-type-specific
+base gene set (200-3,500 genes), recomputing the per-donor
+log-correlation matrices with the inserted gene included, and recording
+the three φ variants (disease, condition, static) plus their percentile
+position within the (base + 1) gene ranking.
+
+Usage (will raise NotImplementedError -- kept for documentation):
     python -m scripts.allgene_insertion --cell-type Oligo --n-base 3500
-
-Output:
-    results/allgene_3phi/{ct}/
-        allgene_3phi.csv          # Per-gene 3φ percentiles + raw values
-        base_raw_phi.npz          # Base-set raw φ values and delta matrices
-        summary.json              # CT metadata, GF values, timing
-
-Migrated from: sals_analysis_frozen_20260211/scripts/run_allgene_insertion_3phi.py
-              sals_analysis_frozen_20260211/scripts/run_allgene_insertion_fast.py
 """
 
 from __future__ import annotations

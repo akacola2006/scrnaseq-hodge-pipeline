@@ -38,7 +38,7 @@ from config.als_stress_config import (
 # パス設定
 # =====================================================
 
-BASE_DIR = Path("/home/akaco/als/motor_cortex_analysis")
+BASE_DIR = Path(os.environ.get("ALS_PART3_BASE_DIR", "data/external/motor_cortex_analysis"))
 IDS_DIR = BASE_DIR / "ids_causal_analysis"
 RESULTS_DIR = IDS_DIR / "results" / "stress_components"
 

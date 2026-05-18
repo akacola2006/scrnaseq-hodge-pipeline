@@ -20,10 +20,11 @@ from pathlib import Path
 import glob
 import gzip
 import warnings
+import os
 warnings.filterwarnings('ignore')
 
 # Configuration
-EXPRESSION_DIR = '/home/akaco/als/motor_cortex_analysis'
+EXPRESSION_DIR = os.environ.get("ALS_PART3_BASE_DIR", "data/external/motor_cortex_analysis")
 OUTPUT_DIR = 'results/phase9_vascular_corrected'
 Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 

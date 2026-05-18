@@ -16,7 +16,7 @@ library(data.table)
 library(dplyr)
 library(ggplot2)
 
-cat(sprintf("JWT set: %s...\n", substr(Sys.getenv("OPENGWAS_JWT"), 1, 20)))
+cat(sprintf("JWT set: %s\n", if (nzchar(Sys.getenv("OPENGWAS_JWT"))) "yes" else "no"))
 
 # --- Paths ---
 source("paths.R")

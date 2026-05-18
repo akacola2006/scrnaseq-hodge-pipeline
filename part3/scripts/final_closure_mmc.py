@@ -10,6 +10,7 @@ Purpose:
 """
 
 import os
+from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,7 +19,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # Paths
-BASE_DIR = "/home/akaco/als/motor_cortex_analysis/ids_causal_analysis"
+BASE_DIR = str(Path(os.environ.get("ALS_PART3_BASE_DIR", "data/external/motor_cortex_analysis")) / "ids_causal_analysis")
 OUTPUT_DIR = os.path.join(BASE_DIR, "results_final_closure_mmc")
 
 # Input files

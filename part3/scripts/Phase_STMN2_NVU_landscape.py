@@ -18,12 +18,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 from scipy import stats
+import os
 
 # =====================================================
 # Configuration
 # =====================================================
 
-BASE_DIR = Path("/home/akaco/als/motor_cortex_analysis")
+BASE_DIR = Path(os.environ.get("ALS_PART3_BASE_DIR", "data/external/motor_cortex_analysis"))
 IDS_DIR = BASE_DIR / "ids_causal_analysis"
 RESULTS_DIR = IDS_DIR / "results" / "phaseTDP_STMN2_NVU"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)

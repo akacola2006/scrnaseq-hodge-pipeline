@@ -24,6 +24,7 @@ from pathlib import Path
 from scipy import stats
 import glob
 import warnings
+import os
 warnings.filterwarnings('ignore')
 
 # Configuration
@@ -32,7 +33,7 @@ OUTPUT_DIR = Path("results/phaseTDP_STMN2_single")
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 
 # Find all expression files
-EXPRESSION_DIR = Path("/home/akaco/als/motor_cortex_analysis")
+EXPRESSION_DIR = Path(os.environ.get("ALS_PART3_BASE_DIR", "data/external/motor_cortex_analysis"))
 expr_files = glob.glob(str(EXPRESSION_DIR / "*expression*.csv"))
 
 print("=" * 80)

@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 import warnings
+import os
 warnings.filterwarnings('ignore')
 
 print("=" * 80)
@@ -32,7 +33,7 @@ print("=" * 80)
 # CONFIGURATION
 # ============================================================================
 
-DATA_DIR = Path('/home/akaco/als/motor_cortex_analysis/ids_causal_analysis')
+DATA_DIR = (Path(os.environ.get("ALS_PART3_BASE_DIR", "data/external/motor_cortex_analysis")) / "ids_causal_analysis")
 GSE_RESULTS = DATA_DIR / 'results' / 'GSE212630_ids_analysis'
 OUTPUT_DIR = GSE_RESULTS / 'upstream_analysis'
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)

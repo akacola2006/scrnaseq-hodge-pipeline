@@ -18,10 +18,11 @@ import re
 import gzip
 from scipy.stats import mannwhitneyu, spearmanr
 import warnings
+import os
 warnings.filterwarnings('ignore')
 
 # Paths
-BASE_DIR = Path('/home/akaco/als/motor_cortex_analysis/ids_causal_analysis')
+BASE_DIR = (Path(os.environ.get("ALS_PART3_BASE_DIR", "data/external/motor_cortex_analysis")) / "ids_causal_analysis")
 OUTPUT_DIR = BASE_DIR / 'results_fire_origin_landscape'
 
 # Create output directories
