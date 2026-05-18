@@ -28,10 +28,23 @@ Norman et al. (2019) CRISPRa Perturb-seq in K562 cells.
 ## Scripts
 
 ### `run_ids_norman.py`
-Main IDS benchmark. Configuration:
+Main IDS benchmark on Norman et al. 2019 K562 Perturb-seq, paper test
+split (`norman_test.h5ad`, 34,624 cells, 235 categories). Configuration:
 - **R2b mode**: global whitening (W = Σ_ctrl^{-1/2}) + bootstrap (B = 100)
-- Per-group Hodge decomposition on K₁₀₂ graph (102 candidate genes)
-- Reproduces the **66.4 % Top-1** reference value.
+- Per-group analytical K_N Hodge phi (edge-weight flow on the candidate
+  gene complete graph)
+- Dynamic candidate construction from the perturbation labels (tokens of
+  `cat.split("_")` that match `adata.var_names`), matching the
+  NormanCellNaviDataset loader.
+- Reproduces the **66.4 % Top-1** reference value (Section 2.4).
+
+### `run_ids_replogle.py`
+Independent external replication of the same R2b pipeline on Replogle et
+al. 2022 K562 essential Perturb-seq
+(`K562_essential_raw_singlecell_01.h5ad`, ~310k cells). Reported as a
+robustness check that the IDS / whitening / Hodge pipeline is not
+dataset-specific. Same algorithm as `run_ids_norman.py`; only the data
+loader and (large, ~2k) candidate gene set differ.
 
 ### `run_grnboost2_norman.py`
 GRNBoost2 baseline using `sklearn.ensemble.GradientBoostingRegressor`
@@ -48,23 +61,28 @@ ZCA whitening implementation from `scripts/whitening.py`:
 
 ```bash
 # 1. Download Norman 2019 data (requires scPerturb account or GEO download)
-# See https://scperturb.org/
+# See https://scperturb.org/ ; extract the paper test split as
+# data/external/norman/processed/norman_test.h5ad
 
-# 2. Run IDS benchmark
-python benchmark/norman_perturb_seq/run_ids_norman.py \
-    --data-dir /path/to/norman_2019 \
-    --output-dir results/norman_benchmark \
-    --mode R2b  # whitening + bootstrap
+# 2. Point the script at the data (default location works if the file is
+#    at the path above; otherwise override with ALS_NORMAN_DATA_DIR or
+#    ALS_NORMAN_TEST_H5AD).
+export ALS_NORMAN_TEST_H5AD=/path/to/norman_test.h5ad
+export ALS_NORMAN_OUTPUT_DIR=results/norman_benchmark
+
+# 3. Run IDS benchmark on Norman
+python benchmark/norman_perturb_seq/run_ids_norman.py
 
 # Expected output:
-#   results/norman_benchmark/top1_accuracy.txt  → 66.4 %
-#   results/norman_benchmark/per_group_results.csv  (232 rows)
-#   results/norman_benchmark/mcnemar_vs_d_corr.json  → p = 1.1×10⁻⁵
+#   $ALS_NORMAN_OUTPUT_DIR/ids_norman.json           # summary including top1_rate ~ 0.66
+#   $ALS_NORMAN_OUTPUT_DIR/ids_norman_per_group.csv  # 232 rows, one per perturbation
 
-# 3. Run GRNBoost2 baseline (optional comparison)
-python benchmark/norman_perturb_seq/run_grnboost2_norman.py \
-    --data-dir /path/to/norman_2019 \
-    --output-dir results/norman_benchmark
+# 4. Run GRNBoost2 baseline (optional comparison)
+python benchmark/norman_perturb_seq/run_grnboost2_norman.py
+
+# 5. Optional: Replogle external replication (independent dataset)
+export ALS_REPLOGLE_DATA_DIR=/path/to/replogle
+python benchmark/norman_perturb_seq/run_ids_replogle.py
 ```
 
 ## Key results (from `champion_tournament_final_summary.md`)
@@ -90,6 +108,17 @@ python benchmark/norman_perturb_seq/run_grnboost2_norman.py \
 ## Source
 
 Migrated from:
-- `cell navi/benchmark/run_ids_replogle_r2b.py` → `run_ids_norman.py`
+- `cell navi/benchmark/run_centrality_baselines_norman_v3.py`  (BV.61 v3,
+  Norman test split + dynamic candidate construction)
+- `cell navi/benchmark/run_ids_replogle_r2b.py`  (R2b whitening + Hodge
+  phi pipeline)
+  → combined into `run_ids_norman.py`
+- `cell navi/benchmark/run_ids_replogle_r2b.py` (Replogle data loader)
+  → `run_ids_replogle.py`
 - `cell navi/benchmark/run_grnboost2_norman.py` → `run_grnboost2_norman.py`
 - `sals_analysis_frozen_20260211/scripts/whitening.py` → `scripts/whitening.py`
+
+The previous repository state placed the R2b Replogle script under
+`run_ids_norman.py`; that script has been renamed to `run_ids_replogle.py`
+and a true Norman evaluation script has been added under the original
+filename.
