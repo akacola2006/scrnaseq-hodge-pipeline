@@ -1,5 +1,8 @@
 # scRNAseq Hodge Decomposition Pipeline
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20269760.svg)](https://doi.org/10.5281/zenodo.20269760)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Companion code repository for:
 
 > **Hodge decomposition of gene co-expression dynamics infers structural
@@ -296,20 +299,33 @@ antisymmetric flow maximally aligned with the discrete gradient of d_i
 
 ## Citing
 
-If you use this code, please cite:
+If you use this software, please cite both the software (via the Zenodo
+DOI) and the associated manuscript:
 
-```
-Kaneko, S. & Urushitani, M. (2026). Hodge decomposition of gene co-expression
-dynamics infers structural upstream organisation in sporadic ALS. [journal TBD].
+```bibtex
+@software{kaneko_scrnaseq_hodge_pipeline,
+  author       = {Kaneko, Shunya},
+  title        = {scRNAseq Hodge Decomposition Pipeline},
+  version      = {v1.1.0-clean},
+  year         = {2026},
+  publisher    = {Zenodo},
+  doi          = {10.5281/zenodo.20269760},
+  url          = {https://doi.org/10.5281/zenodo.20269760}
+}
+
+@article{kaneko_urushitani_2026_als_hodge,
+  author  = {Kaneko, Shunya and Urushitani, Makoto},
+  title   = {Hodge decomposition of gene co-expression dynamics infers
+             structural upstream organisation in sporadic ALS:
+             from measurement instrument to integrated disease cascade},
+  year    = {2026},
+  note    = {Manuscript in preparation}
+}
 ```
 
-And the companion theoretical manuscript:
-
-```
-Kaneko, A. (in preparation). IDS theory: stress geometry, swap-aggregation
-dynamics, and principle-theoretic foundations of covariance manifold analysis.
-```
+A `CITATION.cff` file is included for machine-readable citation
+(GitHub's "Cite this repository" widget reads it automatically).
 
 ## License
 
-Research use.
+This software is released under the [MIT License](LICENSE).
