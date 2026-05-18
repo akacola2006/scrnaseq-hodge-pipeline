@@ -1,0 +1,32 @@
+{
+  "title": "scRNAseq Hodge Decomposition Pipeline",
+  "description": "Generalised single-cell RNA-seq analysis pipeline using discrete Hodge decomposition on SPD/log-Euclidean covariance manifolds to identify upstream cell types and upstream genes driving disease- or condition-associated changes in gene co-expression structure. Developed for ALS/FTLD research and validated against external perturbation benchmarks (Norman 2019 Perturb-seq, Shen 2024 CRISPR, TimeVault PC9, TCGA+GTEx glioma, Mendelian randomization).",
+  "creators": [
+    {
+      "name": "Kaneko, Shunya",
+      "affiliation": "Shiga University of Medical Science",
+      "orcid": "0000-0001-8561-0892"
+    }
+  ],
+  "license": "MIT",
+  "upload_type": "software",
+  "access_right": "open",
+  "keywords": [
+    "single-cell RNA-seq",
+    "Hodge decomposition",
+    "SPD manifold",
+    "log-Euclidean geometry",
+    "amyotrophic lateral sclerosis",
+    "ALS",
+    "upstream gene discovery",
+    "perturbation benchmark",
+    "Mendelian randomization"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/akacola2006/scrnaseq-hodge-pipeline",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ]
+}

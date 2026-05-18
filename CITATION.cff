@@ -1,0 +1,48 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite both the software (via this Zenodo DOI) and the associated paper."
+title: "scRNAseq Hodge Decomposition Pipeline"
+abstract: >-
+  Generalised single-cell RNA-seq analysis pipeline using discrete Hodge
+  decomposition on SPD/log-Euclidean covariance manifolds to identify
+  upstream cell types and upstream genes driving disease- or
+  condition-associated changes in gene co-expression structure.
+  Developed for ALS/FTLD research and validated against external
+  perturbation benchmarks (Norman 2019 Perturb-seq, Shen 2024 CRISPR,
+  TimeVault PC9, TCGA+GTEx glioma, Mendelian randomization).
+type: software
+authors:
+  - family-names: Kaneko
+    given-names: Shunya
+    orcid: "https://orcid.org/0000-0001-8561-0892"
+    affiliation: "Shiga University of Medical Science"
+repository-code: "https://github.com/akacola2006/scrnaseq-hodge-pipeline"
+url: "https://github.com/akacola2006/scrnaseq-hodge-pipeline"
+license: MIT
+keywords:
+  - single-cell-RNA-seq
+  - Hodge-decomposition
+  - SPD-manifold
+  - log-Euclidean
+  - amyotrophic-lateral-sclerosis
+  - ALS
+  - upstream-gene-discovery
+  - perturbation-benchmark
+  - Mendelian-randomization
+version: "1.1.0"
+date-released: "2026-05-18"
+preferred-citation:
+  type: article
+  title: >-
+    Hodge decomposition of gene co-expression dynamics infers structural
+    upstream organisation in sporadic ALS: from measurement instrument to
+    integrated disease cascade
+  authors:
+    - family-names: Kaneko
+      given-names: Shunya
+      orcid: "https://orcid.org/0000-0001-8561-0892"
+      affiliation: "Shiga University of Medical Science"
+    - family-names: Urushitani
+      given-names: Makoto
+      affiliation: "Shiga University of Medical Science"
+  year: 2026
+  notes: "Manuscript in preparation"
